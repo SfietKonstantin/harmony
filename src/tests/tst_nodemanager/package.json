@@ -1,0 +1,11 @@
+{
+    "name": "tst_nodemanager",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "start": "node app"
+    },
+    "dependencies": {
+        "dbus": ">=0.2.10"
+    }
+} 

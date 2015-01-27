@@ -33,11 +33,26 @@
 #include <QtCore/QDebug>
 #include <QtDBus/QDBusConnection>
 
-static const char *SERVICE = "org.sfietkonstantin.harmony";
+static const char *SERVICE = "org.sfietkonstantin.Harmony";
 static const char *PATH = "/";
 
+class ServiceProviderPrivate
+{
+public:
+    explicit ServiceProviderPrivate(ServiceProvider *q);
+    IdentificationService::Ptr identificationService;
+private:
+    ServiceProvider * const q_ptr;
+    Q_DECLARE_PUBLIC(ServiceProvider)
+};
+
+ServiceProviderPrivate::ServiceProviderPrivate(ServiceProvider *q)
+    : q_ptr(q)
+{
+}
+
 ServiceProvider::ServiceProvider(QObject *parent)
-    : QObject(parent)
+    : QObject(parent), d_ptr(new ServiceProviderPrivate(this))
 {
 }
 
@@ -63,8 +78,15 @@ ServiceProvider::Ptr ServiceProvider::create(QObject *parent)
     return instance;
 }
 
+IdentificationService::Ptr ServiceProvider::identificationService() const
+{
+    Q_D(const ServiceProvider);
+    return d->identificationService;
+}
+
 void ServiceProvider::init()
 {
-    m_identificationService = IdentificationService::create(this);
+    Q_D(ServiceProvider);
+    d->identificationService = IdentificationService::create(this);
 }
 

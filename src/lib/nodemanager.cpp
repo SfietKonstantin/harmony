@@ -30,14 +30,158 @@
  */
 
 #include "nodemanager.h"
+#include <QtCore/QDebug>
+#include <QtCore/QPointer>
+#include <QtCore/QProcess>
+#include <QtDBus/QDBusConnection>
+#include "nodemanageradaptor.h"
 
-NodeManager::NodeManager(QObject *parent) : QObject(parent)
+static const char *PATH = "/nodemanager";
+static const char *NODE_EXEC = "/usr/bin/node";
+static const int TIMEOUT_INTERVAL = 10000; // 10 seconds
+
+class NodeManagerPrivate
 {
+public:
+    explicit NodeManagerPrivate(NodeManager *q);
+    void setStatus(NodeManager::Status newStatus);
+    bool registered;
+    QPointer<QProcess> node;
+    NodeManager::Status status;
+    QTimer *timer;
+private:
+    NodeManager * const q_ptr;
+    Q_DECLARE_PUBLIC(NodeManager)
+};
 
+NodeManagerPrivate::NodeManagerPrivate(NodeManager *q)
+    : registered(false), status(NodeManager::Stopped), timer(0), q_ptr(q)
+{
+}
+
+void NodeManagerPrivate::setStatus(NodeManager::Status newStatus)
+{
+    Q_Q(NodeManager);
+    if (status != newStatus) {
+        status = newStatus;
+        emit q->statusChanged();
+    }
+}
+
+NodeManager::NodeManager(QObject *parent)
+    : QObject(parent), d_ptr(new NodeManagerPrivate(this))
+{
+    Q_D(NodeManager);
+    d->timer = new QTimer(this);
+    d->timer->setInterval(TIMEOUT_INTERVAL);
+    d->timer->setSingleShot(true);
+    connect(d->timer, &QTimer::timeout, [=](){
+       d->node->terminate();
+    });
 }
 
 NodeManager::~NodeManager()
 {
+    Q_D(NodeManager);
+    if (d->registered) {
+        QDBusConnection::sessionBus().unregisterObject(PATH);
+#ifdef HARMONY_DEBUG
+        qDebug() << "Unregistered DBus object" << PATH;
+#endif
+    }
 
+    if (!d->node.isNull()) {
+        d->node->terminate();
+        if (!d->node->waitForFinished(10000)) {
+            d->node->kill();
+            d->node->waitForFinished(-1);
+        }
+    }
 }
 
+NodeManager::Ptr NodeManager::create(QObject *parent)
+{
+    Ptr instance = Ptr(new NodeManager(parent));
+    new NodeManagerAdaptor(instance.data());
+
+    if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {
+        qWarning() << "Failed to register DBus object" << PATH;
+        return Ptr();
+    }
+
+    instance->d_func()->registered = true;
+    return instance;
+}
+
+NodeManager::Status NodeManager::status() const
+{
+    Q_D(const NodeManager);
+    return d->status;
+}
+
+bool NodeManager::startNode(const QString &script)
+{
+    Q_D(NodeManager);
+    if (!d->registered) {
+        return false;
+    }
+
+    if (!d->node.isNull()) {
+        return false;
+    }
+
+    d->setStatus(Starting);
+    d->node = QPointer<QProcess>(new QProcess(this));
+
+    d->node->setProgram(NODE_EXEC);
+    QStringList args;
+    args.append(script);
+    d->node->setArguments(args);
+
+    void (QProcess:: *finishedSignal)(int) = &QProcess::finished;
+    connect(d->node.data(), finishedSignal, [=](int) {
+        d->setStatus(Stopped);
+        d->node->deleteLater();
+    });
+    void (QProcess:: *errorSignal)(QProcess::ProcessError) = &QProcess::error;
+    connect(d->node.data(), errorSignal, [=](QProcess::ProcessError){
+#ifdef HARMONY_DEBUG
+        qDebug() << "Node failed:" << d->node->errorString();
+#endif
+        d->setStatus(NodeManager::Stopped);
+    });
+
+#ifdef HARMONY_DEBUG
+    connect(d->node.data(), &QProcess::readyReadStandardOutput, [=](){
+        qDebug() << d->node->readAllStandardOutput();
+    });
+#endif
+    connect(d->node.data(), &QProcess::readyReadStandardError, [=](){
+        qWarning() << d->node->readAllStandardError();
+    });
+
+    d->timer->start();
+    d->node->start();
+
+    return true;
+}
+
+void NodeManager::stopNode()
+{
+    Q_D(NodeManager);
+    if (!d->node) {
+        return;
+    }
+    d->node->terminate();
+    d->setStatus(Stopping);
+}
+
+void NodeManager::RegisterNode()
+{
+    Q_D(NodeManager);
+    if (!d->node) {
+        return;
+    }
+
+    d->setStatus(Ready);
+}

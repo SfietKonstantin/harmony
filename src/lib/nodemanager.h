@@ -33,13 +33,36 @@
 #define NODEMANAGER_H
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
+class NodeManagerPrivate;
 class NodeManager : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(Status status READ status NOTIFY statusChanged)
+    Q_ENUMS(Status)
 public:
-    explicit NodeManager(QObject *parent = 0);
+    enum Status
+    {
+        Stopped,
+        Starting,
+        Ready,
+        Stopping
+    };
+    typedef QSharedPointer<NodeManager> Ptr;
     virtual ~NodeManager();
+    static Ptr create(QObject *parent = 0);
+    Status status() const;
+    bool startNode(const QString &script);
+    void stopNode();
+Q_SIGNALS:
+    void statusChanged();
+protected:
+    QScopedPointer<NodeManagerPrivate> d_ptr;
+private:
+    explicit NodeManager(QObject *parent = 0);
+    Q_INVOKABLE void RegisterNode();
+    Q_DECLARE_PRIVATE(NodeManager)
 };
 
 #endif // NODEMANAGER_H

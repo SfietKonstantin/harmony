@@ -36,6 +36,7 @@
 #include <QtCore/QSharedPointer>
 #include "identificationservice.h"
 
+class ServiceProviderPrivate;
 class ServiceProvider : public QObject
 {
     Q_OBJECT
@@ -43,10 +44,13 @@ public:
     typedef QSharedPointer<ServiceProvider> Ptr;
     virtual ~ServiceProvider();
     static Ptr create(QObject *parent = 0);
+    IdentificationService::Ptr identificationService() const;
+protected:
+    QScopedPointer<ServiceProviderPrivate> d_ptr;
 private:
     explicit ServiceProvider(QObject *parent = 0);
     void init();
-    IdentificationService::Ptr m_identificationService;
+    Q_DECLARE_PRIVATE(ServiceProvider)
 };
 
 #endif // SERVICEPROVIDER_H

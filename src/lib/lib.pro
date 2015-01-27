@@ -13,15 +13,19 @@ HEADERS += \
     serviceprovider.h \
     identificationservice.h \
     identificationserviceadaptor.h \
-    nodemanager.h
+    nodemanager.h \
+    nodemanageradaptor.h
 
 SOURCES += \
     serviceprovider.cpp \
     identificationservice.cpp \
     identificationserviceadaptor.cpp \
-    nodemanager.cpp
+    nodemanager.cpp \
+    nodemanageradaptor.cpp
 
 OTHER_FILES += \
-    org.sfietkonstantin.harmony.identificationservice.xml
+    org.sfietkonstantin.harmony.identificationservice.xml \
+    org.sfietkonstantin.harmony.nodemanager.xml \
 
 system(qdbusxml2cpp org.sfietkonstantin.harmony.identificationservice.xml -a identificationserviceadaptor -c IdentificationServiceAdaptor)
+system(qdbusxml2cpp org.sfietkonstantin.harmony.nodemanager.xml -a nodemanageradaptor -c NodeManagerAdaptor)

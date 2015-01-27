@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>package.json</file>
+        <file>success.js</file>
+        <file>timeout.js</file>
+        <file>error.js</file>
+    </qresource>
+</RCC>

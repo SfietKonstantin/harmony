@@ -105,12 +105,6 @@ IdentificationService::~IdentificationService()
     }
 }
 
-QString IdentificationService::password() const
-{
-    Q_D(const IdentificationService);
-    return d->password;
-}
-
 IdentificationService::Ptr IdentificationService::create(QObject *parent)
 {
     Ptr instance = Ptr(new IdentificationService(parent));
@@ -124,6 +118,12 @@ IdentificationService::Ptr IdentificationService::create(QObject *parent)
     instance->d_func()->registered = true;
     instance->d_func()->generatePassword();
     return instance;
+}
+
+QString IdentificationService::password() const
+{
+    Q_D(const IdentificationService);
+    return d->password;
 }
 
 QStringList IdentificationService::registeredClients() const

@@ -39,6 +39,7 @@ class TstIdentificationService : public QObject
 private Q_SLOTS:
     void testDBusRegister();
     void testClientRegister();
+    void testPassword();
 };
 
 void TstIdentificationService::testDBusRegister()
@@ -76,6 +77,35 @@ void TstIdentificationService::testClientRegister()
     // Unregister
     QVERIFY(service->unregisterClient(testClient));
     QVERIFY(service->registeredClients().isEmpty());
+}
+
+void TstIdentificationService::testPassword()
+{
+    IdentificationService::Ptr service = IdentificationService::create();
+    QSignalSpy spy (service.data(), SIGNAL(passwordChanged()));
+
+    QString testClient ("testclient");
+    QString password = service->password();
+
+    // Fail to register client
+    QVERIFY(!service->registerClient(testClient, QString()));
+    QVERIFY(service->registeredClients().isEmpty());
+    QCOMPARE(spy.count(), 0);
+    QCOMPARE(service->password(), password);
+
+    // Second time
+    QVERIFY(!service->registerClient(testClient, QString()));
+    QVERIFY(service->registeredClients().isEmpty());
+    QCOMPARE(spy.count(), 0);
+    QCOMPARE(service->password(), password);
+
+    // Third time
+    QVERIFY(!service->registerClient(testClient, QString()));
+    QVERIFY(service->registeredClients().isEmpty());
+
+    // Password should have changed
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(service->password() != password);
 }
 
 
