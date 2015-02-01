@@ -49,8 +49,9 @@ public:
     QPointer<QProcess> node;
     NodeManager::Status status;
     QTimer *timer;
-private:
+protected:
     NodeManager * const q_ptr;
+private:
     Q_DECLARE_PUBLIC(NodeManager)
 };
 

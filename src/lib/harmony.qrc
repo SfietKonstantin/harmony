@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>gencert.sh</file>
+    </qresource>
+</RCC>

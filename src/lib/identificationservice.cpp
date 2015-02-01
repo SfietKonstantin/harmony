@@ -49,8 +49,9 @@ public:
     QString password;
     int passwordAttempts;
     QSet<QString> registeredClients;
-private:
+protected:
     IdentificationService * const q_ptr;
+private:
     Q_DECLARE_PUBLIC(IdentificationService)
 };
 

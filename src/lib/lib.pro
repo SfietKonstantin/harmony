@@ -14,14 +14,19 @@ HEADERS += \
     identificationservice.h \
     identificationserviceadaptor.h \
     nodemanager.h \
-    nodemanageradaptor.h
+    nodemanageradaptor.h \
+    certificatemanager.h
 
 SOURCES += \
     serviceprovider.cpp \
     identificationservice.cpp \
     identificationserviceadaptor.cpp \
     nodemanager.cpp \
-    nodemanageradaptor.cpp
+    nodemanageradaptor.cpp \
+    certificatemanager.cpp
+
+RESOURCES += \
+    harmony.qrc
 
 OTHER_FILES += \
     org.sfietkonstantin.harmony.identificationservice.xml \

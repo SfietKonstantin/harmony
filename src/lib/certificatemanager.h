@@ -29,65 +29,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include "serviceprovider.h"
-#include <QtCore/QDebug>
-#include <QtDBus/QDBusConnection>
+#ifndef CERTIFICATEMANAGER_H
+#define CERTIFICATEMANAGER_H
 
-static const char *SERVICE = "org.sfietkonstantin.Harmony";
-static const char *PATH = "/";
+#include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
-class ServiceProviderPrivate
+class AbstractCertificateManagerPrivate;
+class AbstractCertificateManager: public QObject
 {
+    Q_OBJECT
 public:
-    explicit ServiceProviderPrivate(ServiceProvider *q);
-    IdentificationService::Ptr identificationService;
+    virtual ~AbstractCertificateManager();
+    virtual QString certificatePath() const = 0;
+    bool hasCertificates() const;
+    bool createCertificates() const;
+    bool removeCertificates() const;
 protected:
-    ServiceProvider * const q_ptr;
+    explicit AbstractCertificateManager(QObject *parent = 0);
+    QScopedPointer<AbstractCertificateManagerPrivate> d_ptr;
 private:
-    Q_DECLARE_PUBLIC(ServiceProvider)
+    Q_DECLARE_PRIVATE(AbstractCertificateManager)
 };
 
-ServiceProviderPrivate::ServiceProviderPrivate(ServiceProvider *q)
-    : q_ptr(q)
+class CertificateManagerPrivate;
+class CertificateManager : public AbstractCertificateManager
 {
-}
+    Q_OBJECT
+public:
+    typedef QSharedPointer<CertificateManager> Ptr;
+    static Ptr create(QObject *parent = 0);
+    QString certificatePath() const override;
+protected:
+    explicit CertificateManager(QObject *parent = 0);
+private:
+    Q_DECLARE_PRIVATE(CertificateManager)
+};
 
-ServiceProvider::ServiceProvider(QObject *parent)
-    : QObject(parent), d_ptr(new ServiceProviderPrivate(this))
-{
-}
-
-ServiceProvider::~ServiceProvider()
-{
-}
-
-ServiceProvider::Ptr ServiceProvider::create(QObject *parent)
-{
-    Ptr instance = Ptr(new ServiceProvider(parent));
-
-    if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
-        qWarning() << "Failed to register DBus service" << SERVICE;
-        return Ptr();
-    }
-
-    if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {
-        qWarning() << "Failed to register DBus object" << PATH;
-        return Ptr();
-    }
-
-    instance->init();
-    return instance;
-}
-
-IdentificationService::Ptr ServiceProvider::identificationService() const
-{
-    Q_D(const ServiceProvider);
-    return d->identificationService;
-}
-
-void ServiceProvider::init()
-{
-    Q_D(ServiceProvider);
-    d->identificationService = IdentificationService::create(this);
-}
-
+#endif // CERTIFICATEMANAGER_H
