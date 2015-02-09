@@ -29,37 +29,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef IDENTIFICATIONSERVICE_H
-#define IDENTIFICATIONSERVICE_H
+#ifndef NODECONFIGURATIONSERVICE_H
+#define NODECONFIGURATIONSERVICE_H
 
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
-#include <QtCore/QStringList>
+#include "certificatemanager.h"
 
-class IdentificationServicePrivate;
-class IdentificationService : public QObject
+class NodeConfigurationServicePrivate;
+class NodeConfigurationService : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString password READ password NOTIFY passwordChanged)
+    Q_PROPERTY(QString certificatePath READ certificatePath CONSTANT)
+    Q_PROPERTY(QString CertificatePath READ certificatePath CONSTANT)
 public:
-    typedef QSharedPointer<IdentificationService> Ptr;
-    virtual ~IdentificationService();
-    QString password() const;
-    static Ptr create(QObject *parent = 0);
-    QStringList registeredClients() const;
-    bool registerClient(const QString &token, const QString &password);
-    bool unregisterClient(const QString &token);
-Q_SIGNALS:
-    void passwordChanged();
-    void PasswordChanged();
+    typedef QSharedPointer<NodeConfigurationService> Ptr;
+    virtual ~NodeConfigurationService();
+    QString certificatePath() const;
+    static Ptr create(CertificateManager::Ptr certificateManager, QObject *parent = 0);
 protected:
-    QScopedPointer<IdentificationServicePrivate> d_ptr;
+    QScopedPointer<NodeConfigurationServicePrivate> d_ptr;
 private:
-    explicit IdentificationService(QObject *parent = 0);
-    Q_INVOKABLE QStringList RegisteredClients() const;
-    Q_INVOKABLE bool RegisterClient(const QString &token, const QString &password);
-    Q_INVOKABLE bool UnregisterClient(const QString &token);
-    Q_DECLARE_PRIVATE(IdentificationService)
+    explicit NodeConfigurationService(QObject *parent = 0);
+    Q_DECLARE_PRIVATE(NodeConfigurationService)
 };
 
-#endif // IDENTIFICATIONSERVICE_H
+#endif // NODECONFIGURATIONSERVICE_H

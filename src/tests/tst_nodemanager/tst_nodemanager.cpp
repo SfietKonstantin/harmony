@@ -91,7 +91,7 @@ public:
     explicit StatusWatcher(NodeManager *nodeManager)
         : QObject(nodeManager)
     {
-        connect(nodeManager, &NodeManager::statusChanged, [=]() {
+        connect(nodeManager, &NodeManager::statusChanged, [this, nodeManager]() {
             NodeManager::Status status = nodeManager->status();
             emit statusChanged(status);
         });

@@ -29,71 +29,67 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include "serviceprovider.h"
+#include "nodeconfigurationservice.h"
+#include "certificatemanager.h"
+#include "nodeconfigurationserviceadaptor.h"
 #include <QtCore/QDebug>
-#include <QtDBus/QDBusConnection>
 
-static const char *SERVICE = "org.sfietkonstantin.Harmony";
-static const char *PATH = "/";
+static const char *PATH = "/nodeconfigurationservice";
 
-class ServiceProviderPrivate
+class NodeConfigurationServicePrivate
 {
 public:
-    explicit ServiceProviderPrivate(ServiceProvider *q);
-    NodeConfigurationService::Ptr nodeConfigurationService;
-    IdentificationService::Ptr identificationService;
+    explicit NodeConfigurationServicePrivate(NodeConfigurationService *q);
+    bool registered;
+    QString certificatePath;
 protected:
-    ServiceProvider * const q_ptr;
+    NodeConfigurationService * const q_ptr;
 private:
-    Q_DECLARE_PUBLIC(ServiceProvider)
+    Q_DECLARE_PUBLIC(NodeConfigurationService)
 };
 
-ServiceProviderPrivate::ServiceProviderPrivate(ServiceProvider *q)
-    : q_ptr(q)
+NodeConfigurationServicePrivate::NodeConfigurationServicePrivate(NodeConfigurationService *q)
+    : registered(false), q_ptr(q)
 {
 }
 
-ServiceProvider::ServiceProvider(QObject *parent)
-    : QObject(parent), d_ptr(new ServiceProviderPrivate(this))
+NodeConfigurationService::NodeConfigurationService(QObject *parent)
+    : QObject(parent), d_ptr(new NodeConfigurationServicePrivate(this))
 {
 }
 
-ServiceProvider::~ServiceProvider()
+NodeConfigurationService::~NodeConfigurationService()
 {
+    Q_D(NodeConfigurationService);
 #ifdef HARMONY_DEBUG
-    qDebug() << "Destroying ServiceProvider";
+    qDebug() << "Destroying NodeConfigurationService";
 #endif
+    if (d->registered) {
+        QDBusConnection::sessionBus().unregisterObject(PATH);
+#ifdef HARMONY_DEBUG
+        qDebug() << "Unregistered DBus object" << PATH;
+#endif
+    }
 }
 
-ServiceProvider::Ptr ServiceProvider::create(CertificateManager::Ptr certificateManager,
-                                             QObject *parent)
+QString NodeConfigurationService::certificatePath() const
 {
-    Ptr instance = Ptr(new ServiceProvider(parent));
+    Q_D(const NodeConfigurationService);
+    return d->certificatePath;
+}
 
-    if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
-        qWarning() << "Failed to register DBus service" << SERVICE;
-        return Ptr();
-    }
+NodeConfigurationService::Ptr NodeConfigurationService::create(CertificateManager::Ptr certificateManager,
+                                                               QObject *parent)
+{
+    Ptr instance = Ptr(new NodeConfigurationService(parent));
+    instance->d_func()->certificatePath = certificateManager->certificatePath();
+    new NodeConfigurationServiceAdaptor(instance.data());
 
     if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {
         qWarning() << "Failed to register DBus object" << PATH;
         return Ptr();
     }
 
-    instance->init(certificateManager);
+    instance->d_func()->registered = true;
     return instance;
 }
-
-IdentificationService::Ptr ServiceProvider::identificationService() const
-{
-    Q_D(const ServiceProvider);
-    return d->identificationService;
-}
-
-void ServiceProvider::init(CertificateManager::Ptr certificateManager)
-{
-    Q_D(ServiceProvider);
-    d->nodeConfigurationService = NodeConfigurationService::create(certificateManager);
-    d->identificationService = IdentificationService::create(this);
-}
-

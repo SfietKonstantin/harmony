@@ -76,14 +76,22 @@ NodeManager::NodeManager(QObject *parent)
     d->timer = new QTimer(this);
     d->timer->setInterval(TIMEOUT_INTERVAL);
     d->timer->setSingleShot(true);
-    connect(d->timer, &QTimer::timeout, [=](){
-       d->node->terminate();
+    connect(d->timer, &QTimer::timeout, [d](){
+        if (!d->node.isNull()) {
+            d->node->terminate();
+#ifdef HARMONY_DEBUG
+            qDebug() << "Timeout: stopping node";
+#endif
+        }
     });
 }
 
 NodeManager::~NodeManager()
 {
     Q_D(NodeManager);
+#ifdef HARMONY_DEBUG
+    qDebug() << "Destroying NodeManager";
+#endif
     if (d->registered) {
         QDBusConnection::sessionBus().unregisterObject(PATH);
 #ifdef HARMONY_DEBUG
@@ -140,25 +148,27 @@ bool NodeManager::startNode(const QString &script)
     d->node->setArguments(args);
 
     void (QProcess:: *finishedSignal)(int) = &QProcess::finished;
-    connect(d->node.data(), finishedSignal, [=](int) {
+    connect(d->node.data(), finishedSignal, [d](int) {
+        d->timer->stop();
         d->setStatus(Stopped);
         d->node->deleteLater();
     });
     void (QProcess:: *errorSignal)(QProcess::ProcessError) = &QProcess::error;
-    connect(d->node.data(), errorSignal, [=](QProcess::ProcessError){
+    connect(d->node.data(), errorSignal, [d](QProcess::ProcessError){
 #ifdef HARMONY_DEBUG
         qDebug() << "Node failed:" << d->node->errorString();
 #endif
-        d->setStatus(NodeManager::Stopped);
+        d->timer->stop();
+        d->node->terminate();
     });
 
 #ifdef HARMONY_DEBUG
-    connect(d->node.data(), &QProcess::readyReadStandardOutput, [=](){
-        qDebug() << d->node->readAllStandardOutput();
+    connect(d->node.data(), &QProcess::readyReadStandardOutput, [d](){
+        qDebug() << d->node->readAllStandardOutput().trimmed().data();
     });
 #endif
-    connect(d->node.data(), &QProcess::readyReadStandardError, [=](){
-        qWarning() << d->node->readAllStandardError();
+    connect(d->node.data(), &QProcess::readyReadStandardError, [d](){
+        qWarning() << d->node->readAllStandardError().trimmed().data();
     });
 
     d->timer->start();
@@ -184,5 +194,6 @@ void NodeManager::RegisterNode()
         return;
     }
 
+    d->timer->stop();
     d->setStatus(Ready);
 }

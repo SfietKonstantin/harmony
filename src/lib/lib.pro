@@ -15,7 +15,9 @@ HEADERS += \
     identificationserviceadaptor.h \
     nodemanager.h \
     nodemanageradaptor.h \
-    certificatemanager.h
+    certificatemanager.h \
+    nodeconfigurationservice.h \
+    nodeconfigurationserviceadaptor.h
 
 SOURCES += \
     serviceprovider.cpp \
@@ -23,7 +25,9 @@ SOURCES += \
     identificationserviceadaptor.cpp \
     nodemanager.cpp \
     nodemanageradaptor.cpp \
-    certificatemanager.cpp
+    certificatemanager.cpp \
+    nodeconfigurationservice.cpp \
+    nodeconfigurationserviceadaptor.cpp
 
 RESOURCES += \
     harmony.qrc
@@ -31,6 +35,8 @@ RESOURCES += \
 OTHER_FILES += \
     org.sfietkonstantin.harmony.identificationservice.xml \
     org.sfietkonstantin.harmony.nodemanager.xml \
+    org.sfietkonstantin.harmony.nodeconfigurationservice.xml
 
 system(qdbusxml2cpp org.sfietkonstantin.harmony.identificationservice.xml -a identificationserviceadaptor -c IdentificationServiceAdaptor)
 system(qdbusxml2cpp org.sfietkonstantin.harmony.nodemanager.xml -a nodemanageradaptor -c NodeManagerAdaptor)
+system(qdbusxml2cpp org.sfietkonstantin.harmony.nodeconfigurationservice.xml -a nodeconfigurationserviceadaptor -c NodeConfigurationServiceAdaptor)

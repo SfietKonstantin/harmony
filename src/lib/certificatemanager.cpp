@@ -47,6 +47,7 @@ class AbstractCertificateManagerPrivate
 {
 public:
     explicit AbstractCertificateManagerPrivate(AbstractCertificateManager *q);
+    QString certificatePath;
 protected:
     AbstractCertificateManager * const q_ptr;
 private:
@@ -65,11 +66,21 @@ AbstractCertificateManager::AbstractCertificateManager(QObject *parent)
 
 AbstractCertificateManager::~AbstractCertificateManager()
 {
+#ifdef HARMONY_DEBUG
+    qDebug() << "Destroying AbstractCertificateManager";
+#endif
+}
+
+QString AbstractCertificateManager::certificatePath() const
+{
+    Q_D(const AbstractCertificateManager);
+    return d->certificatePath;
 }
 
 bool AbstractCertificateManager::hasCertificates() const
 {
-    QDir dir (certificatePath());
+    Q_D(const AbstractCertificateManager);
+    QDir dir (d->certificatePath);
     if (!dir.exists()) {
         return false;
     }
@@ -95,6 +106,7 @@ bool AbstractCertificateManager::hasCertificates() const
 
 bool AbstractCertificateManager::createCertificates() const
 {
+    Q_D(const AbstractCertificateManager);
     QTemporaryFile file;
     if (!file.open()) {
         return false;
@@ -114,7 +126,7 @@ bool AbstractCertificateManager::createCertificates() const
     file.setPermissions(QFile::ReadUser | QFile::ExeUser);
     QStringList args;
     args.append(file.fileName());
-    args.append(certificatePath());
+    args.append(d->certificatePath);
     QProcess process;
     process.setProgram(SHELL_EXEC);
     process.setArguments(args);
@@ -125,29 +137,30 @@ bool AbstractCertificateManager::createCertificates() const
 
 bool AbstractCertificateManager::removeCertificates() const
 {
-    QDir dir (certificatePath());
+    Q_D(const AbstractCertificateManager);
+    QDir dir (d->certificatePath);
     return dir.removeRecursively();
+}
+
+void AbstractCertificateManager::setCertificatePath(const QString &certificatePath)
+{
+    Q_D(AbstractCertificateManager);
+    d->certificatePath = certificatePath;
 }
 
 class CertificateManagerPrivate: public AbstractCertificateManagerPrivate
 {
 public:
     explicit CertificateManagerPrivate(CertificateManager *q);
-    QString certificatePath;
 private:
     Q_DECLARE_PUBLIC(CertificateManager)
 };
 
-CertificateManagerPrivate::CertificateManagerPrivate(CertificateManager *q)
-    : AbstractCertificateManagerPrivate(q)
-{
-    QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
-    certificatePath = dir.absoluteFilePath(CERTIFICATE_DIR);
-}
-
 CertificateManager::CertificateManager(QObject *parent)
     : AbstractCertificateManager(parent)
 {
+    QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+    setCertificatePath(dir.absoluteFilePath(CERTIFICATE_DIR));
 }
 
 CertificateManager::Ptr CertificateManager::create(QObject *parent)
@@ -155,9 +168,3 @@ CertificateManager::Ptr CertificateManager::create(QObject *parent)
     return Ptr(new CertificateManager(parent));
 }
 
-
-QString CertificateManager::certificatePath() const
-{
-    Q_D(const CertificateManager);
-    return d->certificatePath;
-}

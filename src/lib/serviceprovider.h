@@ -34,6 +34,8 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
+#include "nodeconfigurationservice.h"
+#include "certificatemanager.h"
 #include "identificationservice.h"
 
 class ServiceProviderPrivate;
@@ -43,13 +45,14 @@ class ServiceProvider : public QObject
 public:
     typedef QSharedPointer<ServiceProvider> Ptr;
     virtual ~ServiceProvider();
-    static Ptr create(QObject *parent = 0);
+    static Ptr create(CertificateManager::Ptr certificateManager, QObject *parent = 0);
+    NodeConfigurationService::Ptr nodeConfigurationService() const;
     IdentificationService::Ptr identificationService() const;
 protected:
     QScopedPointer<ServiceProviderPrivate> d_ptr;
 private:
     explicit ServiceProvider(QObject *parent = 0);
-    void init();
+    void init(CertificateManager::Ptr certificateManager);
     Q_DECLARE_PRIVATE(ServiceProvider)
 };
 

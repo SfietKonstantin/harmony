@@ -1,13 +1,14 @@
-app = angular.module('app', ['ui.router'])
+angular.module 'Login', []
+app = angular.module 'app', ['Login', 'ui.router']
 
 app.config ($stateProvider, $urlRouterProvider) ->
-    $urlRouterProvider.otherwise '/home'
+    $urlRouterProvider.otherwise '/'
     $stateProvider.state('login', {
         url: '/login',
-        templateUrl: 'pages/login.html',
-        authenticate: false
+        templateUrl: 'modules/login/views/login.html',
+        controller: 'LoginController'
     }).state('home', {
-        url: '/home',
+        url: '/',
         templateUrl: 'pages/home.html',
         authenticate: true
     }).state('apps', {
@@ -15,9 +16,14 @@ app.config ($stateProvider, $urlRouterProvider) ->
         templateUrl: 'pages/home.html',
         authenticate: true
     })
+    return
 
-app.run ($rootScope, $state)->
+app.run ($rootScope, $state, LoginManager)->
     $rootScope.$on "$stateChangeStart", (event, toState, toParams, fromState, fromParams) ->
-        if toState.authenticate
+        if toState.authenticate and not LoginManager.isLoggedIn()
             $state.transitionTo "login"
             event.preventDefault()
+        return
+    $rootScope.$on "loggedInChanged", (event, isLoggedIn) ->
+        $rootScope.loggedIn = isLoggedIn
+    return

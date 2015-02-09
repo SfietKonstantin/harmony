@@ -36,6 +36,7 @@
 #include <QtQuick/QQuickView>
 #include <QtCore/QPointer>
 #include <QtQml/qqml.h>
+#include <certificatemanager.h>
 #include <serviceprovider.h>
 
 int main(int argc, char *argv[])
@@ -50,7 +51,8 @@ int main(int argc, char *argv[])
     app->setApplicationName("harbour-harmony");
 #endif
 
-    ServiceProvider::create(app);
+    CertificateManager::Ptr certificateManager = CertificateManager::create(app);
+    ServiceProvider::create(certificateManager, app);
 
     // View
 #ifndef DESKTOP

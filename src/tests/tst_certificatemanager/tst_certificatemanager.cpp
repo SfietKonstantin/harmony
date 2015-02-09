@@ -39,8 +39,6 @@ class TestCertificateManager: public AbstractCertificateManager
 public:
     typedef QSharedPointer<TestCertificateManager> Ptr;
     static Ptr create(QObject *parent = 0);
-    QString certificatePath() const override;
-    void setCertificatePath(const QString &certificatePath);
 private:
     explicit TestCertificateManager(QObject *parent = 0);
     QString m_certificatePath;
@@ -49,21 +47,19 @@ private:
 TestCertificateManager::TestCertificateManager(QObject *parent)
     : AbstractCertificateManager(parent)
 {
+    QString certificatePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    QDir dir (certificatePath);
+    if (dir.exists()) {
+        QVERIFY(dir.removeRecursively());
+    }
+
+    qDebug() << "Using certificate path" << certificatePath;
+    setCertificatePath(certificatePath);
 }
 
 TestCertificateManager::Ptr TestCertificateManager::create(QObject *parent)
 {
     return Ptr(new TestCertificateManager(parent));
-}
-
-QString TestCertificateManager::certificatePath() const
-{
-    return m_certificatePath;
-}
-
-void TestCertificateManager::setCertificatePath(const QString &certificatePath)
-{
-    m_certificatePath = certificatePath;
 }
 
 class TstCertificateManager : public QObject
@@ -84,14 +80,7 @@ void TstCertificateManager::initTestCase()
 
 void TstCertificateManager::test()
 {
-    QString certificatePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QDir dir (certificatePath);
-    if (dir.exists()) {
-        QVERIFY(dir.removeRecursively());
-    }
-    qDebug() << "Using certificate path" << certificatePath;
     TestCertificateManager::Ptr certificateManager = TestCertificateManager::create();
-    certificateManager->setCertificatePath(certificatePath);
     QVERIFY(!certificateManager->hasCertificates());
     QVERIFY(certificateManager->createCertificates());
     QVERIFY(certificateManager->hasCertificates());

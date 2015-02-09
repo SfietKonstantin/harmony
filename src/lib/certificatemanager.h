@@ -41,29 +41,26 @@ class AbstractCertificateManager: public QObject
     Q_OBJECT
 public:
     virtual ~AbstractCertificateManager();
-    virtual QString certificatePath() const = 0;
+    QString certificatePath() const;
     bool hasCertificates() const;
     bool createCertificates() const;
     bool removeCertificates() const;
 protected:
     explicit AbstractCertificateManager(QObject *parent = 0);
+    void setCertificatePath(const QString &certificatePath);
     QScopedPointer<AbstractCertificateManagerPrivate> d_ptr;
 private:
     Q_DECLARE_PRIVATE(AbstractCertificateManager)
 };
 
-class CertificateManagerPrivate;
 class CertificateManager : public AbstractCertificateManager
 {
     Q_OBJECT
 public:
     typedef QSharedPointer<CertificateManager> Ptr;
     static Ptr create(QObject *parent = 0);
-    QString certificatePath() const override;
 protected:
     explicit CertificateManager(QObject *parent = 0);
-private:
-    Q_DECLARE_PRIVATE(CertificateManager)
 };
 
 #endif // CERTIFICATEMANAGER_H

@@ -98,6 +98,9 @@ IdentificationService::IdentificationService(QObject *parent)
 IdentificationService::~IdentificationService()
 {
     Q_D(IdentificationService);
+#ifdef HARMONY_DEBUG
+    qDebug() << "Destroying IdentificationService";
+#endif
     if (d->registered) {
         QDBusConnection::sessionBus().unregisterObject(PATH);
 #ifdef HARMONY_DEBUG
@@ -132,14 +135,14 @@ QStringList IdentificationService::registeredClients() const
     return RegisteredClients();
 }
 
-bool IdentificationService::registerClient(const QString &clientIp, const QString &password)
+bool IdentificationService::registerClient(const QString &token, const QString &password)
 {
-    return RegisterClient(clientIp, password);
+    return RegisterClient(token, password);
 }
 
-bool IdentificationService::unregisterClient(const QString &clientIp)
+bool IdentificationService::unregisterClient(const QString &token)
 {
-    return UnregisterClient(clientIp);
+    return UnregisterClient(token);
 }
 
 QStringList IdentificationService::RegisteredClients() const
@@ -148,7 +151,7 @@ QStringList IdentificationService::RegisteredClients() const
     return d->registeredClients.toList();
 }
 
-bool IdentificationService::RegisterClient(const QString &clientIp, const QString &password)
+bool IdentificationService::RegisterClient(const QString &token, const QString &password)
 {
     Q_D(IdentificationService);
     if (d->password != password) {
@@ -156,21 +159,21 @@ bool IdentificationService::RegisterClient(const QString &clientIp, const QStrin
         return false;
     }
 
-    if (d->registeredClients.contains(clientIp)) {
+    if (d->registeredClients.contains(token)) {
         return false;
     }
 
-    d->registeredClients.insert(clientIp);
+    d->registeredClients.insert(token);
     d->generatePassword();
     return true;
 }
 
-bool IdentificationService::UnregisterClient(const QString &clientIp)
+bool IdentificationService::UnregisterClient(const QString &token)
 {
     Q_D(IdentificationService);
-    if (!d->registeredClients.contains(clientIp)) {
+    if (!d->registeredClients.contains(token)) {
         return false;
     }
-    d->registeredClients.remove(clientIp);
+    d->registeredClients.remove(token);
     return true;
 }

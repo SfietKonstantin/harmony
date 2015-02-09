@@ -1,5 +1,25 @@
 #!/bin/sh
+
+# Build server files
 coffee -c *.coffee
-pushd public > /dev/null 2>&1
+
+# Build client files
+pushd public > /dev/null
 coffee -c *.coffee
-popd > /dev/null 2>&1
+
+pushd modules > /dev/null
+for d in *; do
+    if [ -d "$d" ]; then
+        pushd $d > /dev/null
+        coffee -c *.coffee
+        popd > /dev/null
+    fi
+done
+popd > /dev/null
+
+popd > /dev/null
+
+# Build test files
+# pushd test > /dev/null
+# coffee -c *.coffee
+# popd > /dev/null
