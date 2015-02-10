@@ -18,10 +18,11 @@
     },
     "bundledDependencies": [
         "express",
-        "server-favicon",
+        "serve-favicon",
         "morgan",
         "body-parser",
         "method-override",
+        "dbus",
         "async",
         "express-jwt",
         "jsonwebtoken"

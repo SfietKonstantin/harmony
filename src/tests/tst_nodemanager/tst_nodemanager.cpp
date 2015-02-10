@@ -52,7 +52,7 @@ private Q_SLOTS:
 
 void TstNodeManager::initTestCase()
 {
-    QStandardPaths::setTestModeEnabled(true);
+    QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
     if (dir.exists()) {
         QVERIFY(dir.removeRecursively());
@@ -102,7 +102,7 @@ signals:
 
 void TstNodeManager::testStartStopNode()
 {
-    QStandardPaths::setTestModeEnabled(true);
+    QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
     QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));
@@ -141,7 +141,7 @@ void TstNodeManager::testStartStopNode()
 
 void TstNodeManager::testStartErrorNode()
 {
-    QStandardPaths::setTestModeEnabled(true);
+    QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
     QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));
@@ -168,7 +168,7 @@ void TstNodeManager::testStartErrorNode()
 
 void TstNodeManager::testStartTimeoutNode()
 {
-    QStandardPaths::setTestModeEnabled(true);
+    QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
     QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));

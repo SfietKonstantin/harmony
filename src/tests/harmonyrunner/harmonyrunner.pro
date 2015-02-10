@@ -8,3 +8,6 @@ INCLUDEPATH += ../../lib
 LIBS += -L../../lib -lharmony
 
 SOURCES += main.cpp
+
+target.path = /usr/bin
+INSTALLS += target

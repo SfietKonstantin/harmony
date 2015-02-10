@@ -75,7 +75,7 @@ void TstCertificateManager::initTestCase()
     Q_INIT_RESOURCE(harmony);
     QCoreApplication::instance()->setOrganizationName("harmony");
     QCoreApplication::instance()->setApplicationName("tst_certificatemanager");
-    QStandardPaths::setTestModeEnabled(true);
+    QStandardPaths::enableTestMode(true);
 }
 
 void TstCertificateManager::test()
