@@ -37,7 +37,7 @@
 #include <QtCore/QTemporaryFile>
 
 static const char *CERTIFICATE_DIR = "ssl";
-static const char *SHELL_EXEC = "/usr/bin/sh";
+static const char *SHELL_EXEC = "/bin/sh";
 static const char *HARMONY_CA_CRT = "harmony-ca.crt";
 static const char *HARMONY_KEY_PUB = "harmony-key.pub";
 static const char *HARMONY_CRT = "harmony.crt";
@@ -132,6 +132,11 @@ bool AbstractCertificateManager::createCertificates() const
     process.setArguments(args);
     process.start();
     process.waitForFinished(-1);
+#ifdef HARMONY_DEBUG
+    qDebug() << "gencert exit with code:" << process.exitCode();
+    qDebug() << "Standard output:" << process.readAllStandardOutput();
+    qDebug() << "Standard error:" << process.readAllStandardError();
+#endif
     return (process.exitCode() == 0);
 }
 

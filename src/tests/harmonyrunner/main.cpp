@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     QObject::connect(nodeManagerData, &NodeManager::statusChanged, [nodeManagerData]{
         qDebug() << "NodeManager status changed:" << nodeManagerData->status();
         if (nodeManagerData->status() == NodeManager::Stopped) {
-            QCoreApplication::instance()->exit();
+//            QCoreApplication::instance()->exit();
         }
     });
     nodeManager->startNode(file);
