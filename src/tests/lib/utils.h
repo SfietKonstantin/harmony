@@ -29,37 +29,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef IDENTIFICATIONSERVICE_H
-#define IDENTIFICATIONSERVICE_H
+#ifndef UTILS_H
+#define UTILS_H
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-#include <QtCore/QStringList>
+#include <QtCore/QString>
 
-class IdentificationServicePrivate;
-class IdentificationService : public QObject
+class Utils
 {
-    Q_OBJECT
-    Q_PROPERTY(QString password READ password NOTIFY passwordChanged)
 public:
-    typedef QSharedPointer<IdentificationService> Ptr;
-    virtual ~IdentificationService();
-    QString password() const;
-    static Ptr create();
-    QStringList registeredClients() const;
-    bool registerClient(const QString &token, const QString &password);
-    bool unregisterClient(const QString &token);
-Q_SIGNALS:
-    void passwordChanged();
-    void PasswordChanged();
-protected:
-    QScopedPointer<IdentificationServicePrivate> d_ptr;
-private:
-    explicit IdentificationService();
-    Q_INVOKABLE QStringList RegisteredClients() const;
-    Q_INVOKABLE bool RegisterClient(const QString &token, const QString &password);
-    Q_INVOKABLE bool UnregisterClient(const QString &token);
-    Q_DECLARE_PRIVATE(IdentificationService)
+    static QString testPath();
 };
 
-#endif // IDENTIFICATIONSERVICE_H
+#endif // UTILS_H

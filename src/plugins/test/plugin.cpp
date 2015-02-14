@@ -29,37 +29,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef IDENTIFICATIONSERVICE_H
-#define IDENTIFICATIONSERVICE_H
+#include <harmonyextension.h>
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-#include <QtCore/QStringList>
-
-class IdentificationServicePrivate;
-class IdentificationService : public QObject
+class HarmonyTestPlugin: public HarmonyExtension
 {
     Q_OBJECT
-    Q_PROPERTY(QString password READ password NOTIFY passwordChanged)
+    Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
 public:
-    typedef QSharedPointer<IdentificationService> Ptr;
-    virtual ~IdentificationService();
-    QString password() const;
-    static Ptr create();
-    QStringList registeredClients() const;
-    bool registerClient(const QString &token, const QString &password);
-    bool unregisterClient(const QString &token);
-Q_SIGNALS:
-    void passwordChanged();
-    void PasswordChanged();
-protected:
-    QScopedPointer<IdentificationServicePrivate> d_ptr;
-private:
-    explicit IdentificationService();
-    Q_INVOKABLE QStringList RegisteredClients() const;
-    Q_INVOKABLE bool RegisterClient(const QString &token, const QString &password);
-    Q_INVOKABLE bool UnregisterClient(const QString &token);
-    Q_DECLARE_PRIVATE(IdentificationService)
+    QString id() const override
+    {
+        return "test";
+    }
+
+    QString name() const override
+    {
+        return tr("Harmony test plugin");
+    }
+
+    QString description() const override
+    {
+        return tr("The Harmony test plugin.");
+    }
+
+    QList<HarmonyEndpoint> endpoints() const override
+    {
+        QList<HarmonyEndpoint> endpoints;
+        HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
+        HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
+        HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
+        endpoints.append(testGet);
+        endpoints.append(testPost);
+        endpoints.append(testDelete);
+        return endpoints;
+    }
+
+    HarmonyRequestResult request(const QString &method, const QJsonDocument &request)
+    {
+        QJsonObject returned;
+        returned.insert("method", method);
+        returned.insert("request", request.object());
+
+        return HarmonyRequestResult(QJsonDocument(returned));
+    }
 };
 
-#endif // IDENTIFICATIONSERVICE_H
+#include "plugin.moc"

@@ -3,6 +3,8 @@ TARGET = harbour-harmony
 
 QT = core gui dbus quick
 
+include(../config.pri)
+
 CONFIG += c++11
 !CONFIG(desktop) {
     CONFIG += sailfishapp

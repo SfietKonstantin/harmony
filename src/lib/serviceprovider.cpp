@@ -31,7 +31,9 @@
 
 #include "serviceprovider.h"
 #include <QtCore/QDebug>
+#include <QtDBus/QDBusMetaType>
 #include <QtDBus/QDBusConnection>
+#include "harmonyextension.h"
 
 static const char *SERVICE = "org.sfietkonstantin.Harmony";
 static const char *PATH = "/";
@@ -53,9 +55,13 @@ ServiceProviderPrivate::ServiceProviderPrivate(ServiceProvider *q)
 {
 }
 
-ServiceProvider::ServiceProvider(QObject *parent)
-    : QObject(parent), d_ptr(new ServiceProviderPrivate(this))
+ServiceProvider::ServiceProvider(NodeConfigurationService::Ptr nodeConfigurationService,
+                                 IdentificationService::Ptr identificationService)
+    : QObject(), d_ptr(new ServiceProviderPrivate(this))
 {
+    Q_D(ServiceProvider);
+    d->nodeConfigurationService = nodeConfigurationService;
+    d->identificationService = identificationService;
 }
 
 ServiceProvider::~ServiceProvider()
@@ -65,35 +71,48 @@ ServiceProvider::~ServiceProvider()
 #endif
 }
 
-ServiceProvider::Ptr ServiceProvider::create(CertificateManager::Ptr certificateManager,
-                                             QObject *parent)
-{
-    Ptr instance = Ptr(new ServiceProvider(parent));
-
-    if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
-        qWarning() << "Failed to register DBus service" << SERVICE;
-        return Ptr();
-    }
-
-    if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {
-        qWarning() << "Failed to register DBus object" << PATH;
-        return Ptr();
-    }
-
-    instance->init(certificateManager);
-    return instance;
-}
-
 IdentificationService::Ptr ServiceProvider::identificationService() const
 {
     Q_D(const ServiceProvider);
     return d->identificationService;
 }
 
-void ServiceProvider::init(CertificateManager::Ptr certificateManager)
+NodeConfigurationService::Ptr ServiceProvider::nodeConfigurationService() const
 {
-    Q_D(ServiceProvider);
-    d->nodeConfigurationService = NodeConfigurationService::create(certificateManager);
-    d->identificationService = IdentificationService::create(this);
+    Q_D(const ServiceProvider);
+    return d->nodeConfigurationService;
 }
 
+bool ServiceProvider::registerToDBus(ServiceProvider::Ptr instance)
+{
+    qDBusRegisterMetaType<HarmonyEndpoint>();
+    qDBusRegisterMetaType<HarmonyRequestResult>();
+
+    if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
+        qWarning() << "Failed to register DBus service" << SERVICE;
+        return false;
+    }
+
+    if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {
+        qWarning() << "Failed to register DBus object" << PATH;
+        return false;
+    }
+
+    return true;
+}
+
+HarmonyServiceProvider::HarmonyServiceProvider(HarmonyCertificateManager::Ptr certificateManager)
+    : ServiceProvider(NodeConfigurationService::create(certificateManager),
+                      IdentificationService::create())
+{
+}
+
+ServiceProvider::Ptr HarmonyServiceProvider::create(HarmonyCertificateManager::Ptr certificateManager)
+{
+    Ptr instance = Ptr(new HarmonyServiceProvider(certificateManager));
+    if (!ServiceProvider::registerToDBus(instance)) {
+        return Ptr();
+    }
+
+    return instance;
+}

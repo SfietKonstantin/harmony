@@ -90,8 +90,8 @@ void IdentificationServicePrivate::generatePassword()
 #endif
 }
 
-IdentificationService::IdentificationService(QObject *parent)
-    : QObject(parent), d_ptr(new IdentificationServicePrivate(this))
+IdentificationService::IdentificationService()
+    : QObject(), d_ptr(new IdentificationServicePrivate(this))
 {
 }
 
@@ -109,9 +109,9 @@ IdentificationService::~IdentificationService()
     }
 }
 
-IdentificationService::Ptr IdentificationService::create(QObject *parent)
+IdentificationService::Ptr IdentificationService::create()
 {
-    Ptr instance = Ptr(new IdentificationService(parent));
+    Ptr instance = Ptr(new IdentificationService());
     new IdentificationServiceAdaptor(instance.data());
 
     if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {

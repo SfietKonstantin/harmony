@@ -2,7 +2,8 @@ TEMPLATE = app
 TARGET = tst_nodemanager
 
 QT = core dbus testlib
-CONFIG += c++11
+
+include(../../config.pri)
 
 INCLUDEPATH += ../../lib
 LIBS += -L../../lib -lharmony

@@ -2,7 +2,8 @@ TEMPLATE = app
 TARGET = harmonyrunner
 
 QT = core dbus
-CONFIG += c++11
+
+include(../../config.pri)
 
 INCLUDEPATH += ../../lib
 LIBS += -L../../lib -lharmony

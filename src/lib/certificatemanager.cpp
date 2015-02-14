@@ -43,70 +43,59 @@ static const char *HARMONY_KEY_PUB = "harmony-key.pub";
 static const char *HARMONY_CRT = "harmony.crt";
 static const char *HARMONY_KEY = "harmony.key";
 
-class AbstractCertificateManagerPrivate
+class CertificateManagerPrivate
 {
 public:
-    explicit AbstractCertificateManagerPrivate(AbstractCertificateManager *q);
+    explicit CertificateManagerPrivate(CertificateManager *q);
     QString certificatePath;
 protected:
-    AbstractCertificateManager * const q_ptr;
+    CertificateManager * const q_ptr;
 private:
-    Q_DECLARE_PUBLIC(AbstractCertificateManager)
+    Q_DECLARE_PUBLIC(CertificateManager)
 };
 
-AbstractCertificateManagerPrivate::AbstractCertificateManagerPrivate(AbstractCertificateManager *q)
+CertificateManagerPrivate::CertificateManagerPrivate(CertificateManager *q)
     : q_ptr(q)
 {
 }
 
-AbstractCertificateManager::AbstractCertificateManager(QObject *parent)
-    : QObject(parent), d_ptr(new AbstractCertificateManagerPrivate(this))
+CertificateManager::CertificateManager()
+    : QObject(), d_ptr(new CertificateManagerPrivate(this))
 {
 }
 
-AbstractCertificateManager::~AbstractCertificateManager()
+CertificateManager::~CertificateManager()
 {
 #ifdef HARMONY_DEBUG
-    qDebug() << "Destroying AbstractCertificateManager";
+    qDebug() << "Destroying CertificateManager";
 #endif
 }
 
-QString AbstractCertificateManager::certificatePath() const
+QString CertificateManager::certificatePath() const
 {
-    Q_D(const AbstractCertificateManager);
+    Q_D(const CertificateManager);
     return d->certificatePath;
 }
 
-bool AbstractCertificateManager::hasCertificates() const
+bool CertificateManager::hasCertificates() const
 {
-    Q_D(const AbstractCertificateManager);
+    Q_D(const CertificateManager);
     QDir dir (d->certificatePath);
     if (!dir.exists()) {
         return false;
     }
 
-    if (!dir.exists(HARMONY_CA_CRT)) {
-        return false;
-    }
-
-    if (!dir.exists(HARMONY_KEY_PUB)) {
-        return false;
-    }
-
-    if (!dir.exists(HARMONY_CRT)) {
-        return false;
-    }
-
-    if (!dir.exists(HARMONY_KEY)) {
+    if (!dir.exists(HARMONY_CA_CRT) || !dir.exists(HARMONY_KEY_PUB)
+        || !dir.exists(HARMONY_CRT) || !dir.exists(HARMONY_KEY)) {
         return false;
     }
 
     return true;
 }
 
-bool AbstractCertificateManager::createCertificates() const
+bool CertificateManager::createCertificates() const
 {
-    Q_D(const AbstractCertificateManager);
+    Q_D(const CertificateManager);
     QTemporaryFile file;
     if (!file.open()) {
         return false;
@@ -140,36 +129,28 @@ bool AbstractCertificateManager::createCertificates() const
     return (process.exitCode() == 0);
 }
 
-bool AbstractCertificateManager::removeCertificates() const
+bool CertificateManager::removeCertificates() const
 {
-    Q_D(const AbstractCertificateManager);
+    Q_D(const CertificateManager);
     QDir dir (d->certificatePath);
     return dir.removeRecursively();
 }
 
-void AbstractCertificateManager::setCertificatePath(const QString &certificatePath)
+void CertificateManager::setCertificatePath(const QString &certificatePath)
 {
-    Q_D(AbstractCertificateManager);
+    Q_D(CertificateManager);
     d->certificatePath = certificatePath;
 }
 
-class CertificateManagerPrivate: public AbstractCertificateManagerPrivate
-{
-public:
-    explicit CertificateManagerPrivate(CertificateManager *q);
-private:
-    Q_DECLARE_PUBLIC(CertificateManager)
-};
-
-CertificateManager::CertificateManager(QObject *parent)
-    : AbstractCertificateManager(parent)
+HarmonyCertificateManager::HarmonyCertificateManager()
+    : CertificateManager()
 {
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
     setCertificatePath(dir.absoluteFilePath(CERTIFICATE_DIR));
 }
 
-CertificateManager::Ptr CertificateManager::create(QObject *parent)
+CertificateManager::Ptr HarmonyCertificateManager::create()
 {
-    return Ptr(new CertificateManager(parent));
+    return Ptr(new HarmonyCertificateManager());
 }
 

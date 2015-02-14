@@ -29,37 +29,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef IDENTIFICATIONSERVICE_H
-#define IDENTIFICATIONSERVICE_H
+#include "utils.h"
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-#include <QtCore/QStringList>
-
-class IdentificationServicePrivate;
-class IdentificationService : public QObject
+QString Utils::testPath()
 {
-    Q_OBJECT
-    Q_PROPERTY(QString password READ password NOTIFY passwordChanged)
-public:
-    typedef QSharedPointer<IdentificationService> Ptr;
-    virtual ~IdentificationService();
-    QString password() const;
-    static Ptr create();
-    QStringList registeredClients() const;
-    bool registerClient(const QString &token, const QString &password);
-    bool unregisterClient(const QString &token);
-Q_SIGNALS:
-    void passwordChanged();
-    void PasswordChanged();
-protected:
-    QScopedPointer<IdentificationServicePrivate> d_ptr;
-private:
-    explicit IdentificationService();
-    Q_INVOKABLE QStringList RegisteredClients() const;
-    Q_INVOKABLE bool RegisterClient(const QString &token, const QString &password);
-    Q_INVOKABLE bool UnregisterClient(const QString &token);
-    Q_DECLARE_PRIVATE(IdentificationService)
-};
-
-#endif // IDENTIFICATIONSERVICE_H
+    QStandardPaths::enableTestMode(true);
+    QString path = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+    QDir dir (path);
+    if (dir.exists()) {
+        Q_ASSERT(dir.removeRecursively());
+    }
+    return path;
+}

@@ -35,32 +35,32 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
-class AbstractCertificateManagerPrivate;
-class AbstractCertificateManager: public QObject
+class CertificateManagerPrivate;
+class CertificateManager: public QObject
 {
     Q_OBJECT
 public:
-    virtual ~AbstractCertificateManager();
+    typedef QSharedPointer<CertificateManager> Ptr;
+    virtual ~CertificateManager();
     QString certificatePath() const;
     bool hasCertificates() const;
     bool createCertificates() const;
     bool removeCertificates() const;
 protected:
-    explicit AbstractCertificateManager(QObject *parent = 0);
+    explicit CertificateManager();
     void setCertificatePath(const QString &certificatePath);
-    QScopedPointer<AbstractCertificateManagerPrivate> d_ptr;
+    QScopedPointer<CertificateManagerPrivate> d_ptr;
 private:
-    Q_DECLARE_PRIVATE(AbstractCertificateManager)
+    Q_DECLARE_PRIVATE(CertificateManager)
 };
 
-class CertificateManager : public AbstractCertificateManager
+class HarmonyCertificateManager : public CertificateManager
 {
     Q_OBJECT
 public:
-    typedef QSharedPointer<CertificateManager> Ptr;
-    static Ptr create(QObject *parent = 0);
+    static Ptr create();
 protected:
-    explicit CertificateManager(QObject *parent = 0);
+    explicit HarmonyCertificateManager();
 };
 
 #endif // CERTIFICATEMANAGER_H

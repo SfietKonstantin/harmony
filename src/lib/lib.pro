@@ -3,11 +3,9 @@ TARGET = harmony
 
 QT = core dbus
 
-CONFIG += c++11
 CONFIG += staticlib
-CONFIG(debug) {
-    DEFINES += HARMONY_DEBUG
-}
+
+include(../config.pri)
 
 HEADERS += \
     serviceprovider.h \
@@ -17,7 +15,8 @@ HEADERS += \
     nodemanageradaptor.h \
     certificatemanager.h \
     nodeconfigurationservice.h \
-    nodeconfigurationserviceadaptor.h
+    nodeconfigurationserviceadaptor.h \
+    harmonyextension.h
 
 SOURCES += \
     serviceprovider.cpp \
@@ -27,7 +26,8 @@ SOURCES += \
     nodemanageradaptor.cpp \
     certificatemanager.cpp \
     nodeconfigurationservice.cpp \
-    nodeconfigurationserviceadaptor.cpp
+    nodeconfigurationserviceadaptor.cpp \
+    harmonyextension.cpp
 
 RESOURCES += \
     harmony.qrc

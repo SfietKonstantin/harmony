@@ -69,8 +69,8 @@ void NodeManagerPrivate::setStatus(NodeManager::Status newStatus)
     }
 }
 
-NodeManager::NodeManager(QObject *parent)
-    : QObject(parent), d_ptr(new NodeManagerPrivate(this))
+NodeManager::NodeManager()
+    : QObject(), d_ptr(new NodeManagerPrivate(this))
 {
     Q_D(NodeManager);
     d->timer = new QTimer(this);
@@ -101,16 +101,16 @@ NodeManager::~NodeManager()
 
     if (!d->node.isNull()) {
         d->node->terminate();
-        if (!d->node->waitForFinished(10000)) {
+        if (!d->node->waitForFinished(TIMEOUT_INTERVAL)) {
             d->node->kill();
             d->node->waitForFinished(-1);
         }
     }
 }
 
-NodeManager::Ptr NodeManager::create(QObject *parent)
+NodeManager::Ptr NodeManager::create()
 {
-    Ptr instance = Ptr(new NodeManager(parent));
+    Ptr instance = Ptr(new NodeManager());
     new NodeManagerAdaptor(instance.data());
 
     if (!QDBusConnection::sessionBus().registerObject(PATH, instance.data())) {

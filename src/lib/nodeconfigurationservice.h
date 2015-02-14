@@ -46,11 +46,11 @@ public:
     typedef QSharedPointer<NodeConfigurationService> Ptr;
     virtual ~NodeConfigurationService();
     QString certificatePath() const;
-    static Ptr create(CertificateManager::Ptr certificateManager, QObject *parent = 0);
+    static Ptr create(HarmonyCertificateManager::Ptr certificateManager);
 protected:
     QScopedPointer<NodeConfigurationServicePrivate> d_ptr;
 private:
-    explicit NodeConfigurationService(QObject *parent = 0);
+    explicit NodeConfigurationService();
     Q_DECLARE_PRIVATE(NodeConfigurationService)
 };
 

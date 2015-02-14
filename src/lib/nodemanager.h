@@ -51,7 +51,7 @@ public:
     };
     typedef QSharedPointer<NodeManager> Ptr;
     virtual ~NodeManager();
-    static Ptr create(QObject *parent = 0);
+    static Ptr create();
     Status status() const;
     bool startNode(const QString &script);
     void stopNode();
@@ -60,7 +60,7 @@ Q_SIGNALS:
 protected:
     QScopedPointer<NodeManagerPrivate> d_ptr;
 private:
-    explicit NodeManager(QObject *parent = 0);
+    explicit NodeManager();
     Q_INVOKABLE void RegisterNode();
     Q_DECLARE_PRIVATE(NodeManager)
 };

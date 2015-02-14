@@ -45,15 +45,23 @@ class ServiceProvider : public QObject
 public:
     typedef QSharedPointer<ServiceProvider> Ptr;
     virtual ~ServiceProvider();
-    static Ptr create(CertificateManager::Ptr certificateManager, QObject *parent = 0);
     NodeConfigurationService::Ptr nodeConfigurationService() const;
     IdentificationService::Ptr identificationService() const;
 protected:
     QScopedPointer<ServiceProviderPrivate> d_ptr;
+    explicit ServiceProvider(NodeConfigurationService::Ptr nodeConfigurationService = NodeConfigurationService::Ptr(),
+                             IdentificationService::Ptr identificationService = IdentificationService::Ptr());
+    static bool registerToDBus(Ptr instance);
 private:
-    explicit ServiceProvider(QObject *parent = 0);
-    void init(CertificateManager::Ptr certificateManager);
     Q_DECLARE_PRIVATE(ServiceProvider)
+};
+
+class HarmonyServiceProvider: public ServiceProvider
+{
+public:
+    static Ptr create(HarmonyCertificateManager::Ptr certificateManager);
+protected:
+    explicit HarmonyServiceProvider(CertificateManager::Ptr certificateManager);
 };
 
 #endif // SERVICEPROVIDER_H

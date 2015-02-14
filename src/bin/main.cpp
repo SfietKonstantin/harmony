@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
     app->setApplicationName("harbour-harmony");
 #endif
 
-    CertificateManager::Ptr certificateManager = CertificateManager::create(app);
-    ServiceProvider::create(certificateManager, app);
+    HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
+    HarmonyServiceProvider::create(certificateManager);
 
     // View
 #ifndef DESKTOP

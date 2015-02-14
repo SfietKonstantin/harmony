@@ -33,33 +33,34 @@
 #include <QtTest/QSignalSpy>
 #include <certificatemanager.h>
 #include <QtCore/QDebug>
+#include <utils.h>
 
-class TestCertificateManager: public AbstractCertificateManager
+class TestCertificateManager: public CertificateManager
 {
 public:
-    typedef QSharedPointer<TestCertificateManager> Ptr;
-    static Ptr create(QObject *parent = 0);
+    static QString testWritableLocation();
+    static Ptr create();
 private:
-    explicit TestCertificateManager(QObject *parent = 0);
+    explicit TestCertificateManager();
     QString m_certificatePath;
 };
 
-TestCertificateManager::TestCertificateManager(QObject *parent)
-    : AbstractCertificateManager(parent)
+TestCertificateManager::TestCertificateManager()
+    : CertificateManager()
 {
-    QString certificatePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QDir dir (certificatePath);
-    if (dir.exists()) {
-        QVERIFY(dir.removeRecursively());
-    }
-
+    QString certificatePath = testWritableLocation();
     qDebug() << "Using certificate path" << certificatePath;
     setCertificatePath(certificatePath);
 }
 
-TestCertificateManager::Ptr TestCertificateManager::create(QObject *parent)
+QString TestCertificateManager::testWritableLocation()
 {
-    return Ptr(new TestCertificateManager(parent));
+    return Utils::testPath();
+}
+
+CertificateManager::Ptr TestCertificateManager::create()
+{
+    return Ptr(new TestCertificateManager());
 }
 
 class TstCertificateManager : public QObject
@@ -68,6 +69,7 @@ class TstCertificateManager : public QObject
 private Q_SLOTS:
     void initTestCase();
     void test();
+    void testCertificateManager();
 };
 
 void TstCertificateManager::initTestCase()
@@ -75,17 +77,22 @@ void TstCertificateManager::initTestCase()
     Q_INIT_RESOURCE(harmony);
     QCoreApplication::instance()->setOrganizationName("harmony");
     QCoreApplication::instance()->setApplicationName("tst_certificatemanager");
-    QStandardPaths::enableTestMode(true);
 }
 
 void TstCertificateManager::test()
 {
     TestCertificateManager::Ptr certificateManager = TestCertificateManager::create();
+    QCOMPARE(certificateManager->certificatePath(), TestCertificateManager::testWritableLocation());
     QVERIFY(!certificateManager->hasCertificates());
     QVERIFY(certificateManager->createCertificates());
     QVERIFY(certificateManager->hasCertificates());
     QVERIFY(certificateManager->removeCertificates());
     QVERIFY(!certificateManager->hasCertificates());
+}
+
+void TstCertificateManager::testCertificateManager()
+{
+    QVERIFY(HarmonyCertificateManager::create().data());
 }
 
 QTEST_MAIN(TstCertificateManager)

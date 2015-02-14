@@ -2,9 +2,12 @@ TEMPLATE = app
 TARGET = tst_certificatemanager
 
 QT = core testlib
-CONFIG += c++11
 
-INCLUDEPATH += ../../lib
-LIBS += -L../../lib -lharmony
+include(../../config.pri)
+
+INCLUDEPATH += ../lib \
+    ../../lib
+LIBS += -L../lib -lharmonytest \
+    -L../../lib -lharmony
 
 SOURCES += tst_certificatemanager.cpp

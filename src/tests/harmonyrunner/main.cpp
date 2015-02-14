@@ -74,17 +74,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    CertificateManager::Ptr certificateManager = CertificateManager::create(&app);
+    HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
     if (!certificateManager->hasCertificates()) {
         certificateManager->createCertificates();
     }
-    ServiceProvider::Ptr serviceProvider = ServiceProvider::create(certificateManager, &app);
+    HarmonyServiceProvider::Ptr serviceProvider = HarmonyServiceProvider::create(certificateManager);
     NodeManager::Ptr nodeManager = NodeManager::create();
     NodeManager *nodeManagerData = nodeManager.data();
     QObject::connect(nodeManagerData, &NodeManager::statusChanged, [nodeManagerData]{
         qDebug() << "NodeManager status changed:" << nodeManagerData->status();
         if (nodeManagerData->status() == NodeManager::Stopped) {
-//            QCoreApplication::instance()->exit();
+            QCoreApplication::instance()->exit();
         }
     });
     nodeManager->startNode(file);

@@ -53,8 +53,8 @@ NodeConfigurationServicePrivate::NodeConfigurationServicePrivate(NodeConfigurati
 {
 }
 
-NodeConfigurationService::NodeConfigurationService(QObject *parent)
-    : QObject(parent), d_ptr(new NodeConfigurationServicePrivate(this))
+NodeConfigurationService::NodeConfigurationService()
+    : QObject(), d_ptr(new NodeConfigurationServicePrivate(this))
 {
 }
 
@@ -78,10 +78,9 @@ QString NodeConfigurationService::certificatePath() const
     return d->certificatePath;
 }
 
-NodeConfigurationService::Ptr NodeConfigurationService::create(CertificateManager::Ptr certificateManager,
-                                                               QObject *parent)
+NodeConfigurationService::Ptr NodeConfigurationService::create(HarmonyCertificateManager::Ptr certificateManager)
 {
-    Ptr instance = Ptr(new NodeConfigurationService(parent));
+    Ptr instance = Ptr(new NodeConfigurationService());
     instance->d_func()->certificatePath = certificateManager->certificatePath();
     new NodeConfigurationServiceAdaptor(instance.data());
 
