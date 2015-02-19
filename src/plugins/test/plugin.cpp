@@ -34,7 +34,9 @@
 class HarmonyTestPlugin: public HarmonyExtension
 {
     Q_OBJECT
+#ifndef SONAR_RUN
     Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
+#endif
 public:
     QString id() const override
     {

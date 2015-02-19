@@ -3,12 +3,12 @@ TARGET = tst_harmonyextension
 
 QT = core dbus testlib
 
-include(../../config.pri)
+include(../../../config.pri)
 
-INCLUDEPATH += ../lib \
-    ../../lib
-LIBS += -L../lib -lharmonytest \
-    -L../../lib -lharmony
+INCLUDEPATH += ../../lib \
+    ../../../lib
+LIBS += -L../../lib -lharmonytest \
+    -L../../../lib -lharmony
 
 HEADERS += testadaptor.h \
     testproxy.h

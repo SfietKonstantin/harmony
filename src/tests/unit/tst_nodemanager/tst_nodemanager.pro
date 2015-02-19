@@ -3,10 +3,10 @@ TARGET = tst_nodemanager
 
 QT = core dbus testlib
 
-include(../../config.pri)
+include(../../../config.pri)
 
-INCLUDEPATH += ../../lib
-LIBS += -L../../lib -lharmony
+INCLUDEPATH += ../../../lib
+LIBS += -L../../../lib -lharmony
 
 RESOURCES += \
     res.qrc
