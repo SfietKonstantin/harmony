@@ -1,5 +1,5 @@
 angular.module 'Login', []
-app = angular.module 'app', ['Login', 'ui.router']
+app = angular.module 'app', ['Login', 'Settings', 'ui.router']
 
 app.config ($stateProvider, $urlRouterProvider) ->
     $stateProvider.state('login', {
@@ -13,6 +13,12 @@ app.config ($stateProvider, $urlRouterProvider) ->
     }).state('apps', {
         url: '/apps',
         templateUrl: 'pages/home.html',
+        authenticate: true
+    }).state('settings', {
+        url: '/settings',
+        templateUrl: 'modules/settings/views/settings.html',
+        controller: 'SettingsController',
+        abstract: true,
         authenticate: true
     })
     $urlRouterProvider.otherwise ($injector, $location) ->

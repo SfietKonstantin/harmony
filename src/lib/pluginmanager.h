@@ -29,50 +29,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include <harmonyextension.h>
+#ifndef PLUGINMANAGER_H
+#define PLUGINMANAGER_H
 
-class HarmonyTestPlugin: public HarmonyExtension
+#include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
+#include "harmonyextension.h"
+
+class PluginManagerPrivate;
+class PluginManager : public QObject
 {
     Q_OBJECT
-#ifndef SONAR_RUN
-    Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
-#endif
 public:
-    QString id() const override
-    {
-        return "test";
-    }
-
-    QString name() const override
-    {
-        return "Harmony test plugin";
-    }
-
-    QString description() const override
-    {
-        return "The Harmony test plugin.";
-    }
-
-    QList<HarmonyEndpoint> endpoints() const override
-    {
-        QList<HarmonyEndpoint> endpoints;
-        HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
-        HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
-        HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
-        endpoints.append(testGet);
-        endpoints.append(testPost);
-        endpoints.append(testDelete);
-        return endpoints;
-    }
-
-    HarmonyRequestResult request(const QString &method, const QJsonDocument &request)
-    {
-        QJsonObject returned;
-        returned.insert("method", method);
-        returned.insert("request", request.object());
-
-        return HarmonyRequestResult(QJsonDocument(returned));
-    }
+    typedef QSharedPointer<PluginManager> Ptr;
+    virtual ~PluginManager();
+    static Ptr create();
+    QList<HarmonyExtension *> plugins() const;
+protected:
+    QScopedPointer<PluginManagerPrivate> d_ptr;
+private:
+    explicit PluginManager();
+    Q_DECLARE_PRIVATE(PluginManager)
 };
 
-#include "plugin.moc"
+#endif // PLUGINMANAGER_H

@@ -1,5 +1,10 @@
 dbus = require 'dbus'
 
+class DBusError extends Error
+    constructor: (message)->
+        super message
+        @name = "DBusError"
+
 class DBusInterface
     sessionBus = null
 
@@ -20,7 +25,7 @@ class DBusInterface
                     callback()
                 iface.RegisterNode()
             else
-                @notifyDBusFailure "Failed to register to nodemanager"
+                throw new DBusError("Failed to register to nodemanager")
             return
         return
 
@@ -30,7 +35,7 @@ class DBusInterface
                 iface.getProperty 'CertificatePath', (err, certificatePath) ->
                     callback certificatePath
             else
-                @notifyDBusFailure "Failed to get CertificatePath from DBus"
+                throw new DBusError("Failed to get CertificatePath from DBus")
             return
         return
 
@@ -42,7 +47,7 @@ class DBusInterface
                     callback(result)
                 iface.RegisterClient(token, password)
             else
-                @notifyDBusFailure "Failed to register to identificationservice"
+                throw new DBusError("Failed to register to identificationservice")
             return
         return
 

@@ -4,4 +4,5 @@ SUBDIRS += tst_certificatemanager \
     tst_nodemanager \
     tst_certificatemanager \
     tst_harmonynodebridge \
-    tst_harmonyextension
+    tst_harmonyextension \
+    tst_pluginservice

@@ -60,7 +60,7 @@ void TstNodeManager::initTestCase()
     QVERIFY(QDir::root().mkpath(dir.absolutePath()));
 
     QDir resDir (":/");
-    foreach (const QString &fileName, resDir.entryList(QDir::Files)) {
+    for (const QString &fileName : resDir.entryList(QDir::Files)) {
         QFile file (resDir.absoluteFilePath(fileName));
         QVERIFY(file.copy(dir.absoluteFilePath(fileName)));
     }

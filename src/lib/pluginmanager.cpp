@@ -29,50 +29,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include <harmonyextension.h>
+#include "pluginmanager.h"
+#include <QtCore/QPluginLoader>
+#include <QtCore/QCoreApplication>
 
-class HarmonyTestPlugin: public HarmonyExtension
+class PluginManagerPrivate
 {
-    Q_OBJECT
-#ifndef SONAR_RUN
-    Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
-#endif
 public:
-    QString id() const override
-    {
-        return "test";
-    }
-
-    QString name() const override
-    {
-        return "Harmony test plugin";
-    }
-
-    QString description() const override
-    {
-        return "The Harmony test plugin.";
-    }
-
-    QList<HarmonyEndpoint> endpoints() const override
-    {
-        QList<HarmonyEndpoint> endpoints;
-        HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
-        HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
-        HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
-        endpoints.append(testGet);
-        endpoints.append(testPost);
-        endpoints.append(testDelete);
-        return endpoints;
-    }
-
-    HarmonyRequestResult request(const QString &method, const QJsonDocument &request)
-    {
-        QJsonObject returned;
-        returned.insert("method", method);
-        returned.insert("request", request.object());
-
-        return HarmonyRequestResult(QJsonDocument(returned));
-    }
+    explicit PluginManagerPrivate(PluginManager *q);
+    void init();
+    QList<HarmonyExtension *> plugins;
+protected:
+    PluginManager * const q_ptr;
+private:
+    Q_DECLARE_PUBLIC(PluginManager)
 };
 
-#include "plugin.moc"
+PluginManagerPrivate::PluginManagerPrivate(PluginManager *q)
+    : q_ptr(q)
+{
+    init();
+}
+
+void PluginManagerPrivate::init()
+{
+    QList<QObject *> staticPlugins = QPluginLoader::staticInstances();
+    for (QObject *object : staticPlugins) {
+        HarmonyExtension *harmonyExtension = qobject_cast<HarmonyExtension *>(object);
+        if (harmonyExtension) {
+            plugins.append(harmonyExtension);
+        }
+    }
+}
+
+PluginManager::PluginManager()
+    : QObject(), d_ptr(new PluginManagerPrivate(this))
+{
+}
+
+PluginManager::~PluginManager()
+{
+    // Destroy plugins to workaround a Qt bug
+    QList<QObject *> plugins = QPluginLoader::staticInstances();
+    for (QObject *plugin : plugins) {
+        delete plugin;
+    }
+}
+
+PluginManager::Ptr PluginManager::create()
+{
+    return Ptr(new PluginManager());
+}
+
+QList<HarmonyExtension *> PluginManager::plugins() const
+{
+    Q_D(const PluginManager);
+    return d->plugins;
+}

@@ -16,7 +16,10 @@ HEADERS += \
     certificatemanager.h \
     nodeconfigurationservice.h \
     nodeconfigurationserviceadaptor.h \
-    harmonyextension.h
+    harmonyextension.h \
+    pluginmanager.h \
+    pluginservice.h \
+    pluginserviceadaptor.h
 
 SOURCES += \
     serviceprovider.cpp \
@@ -27,7 +30,10 @@ SOURCES += \
     certificatemanager.cpp \
     nodeconfigurationservice.cpp \
     nodeconfigurationserviceadaptor.cpp \
-    harmonyextension.cpp
+    harmonyextension.cpp \
+    pluginmanager.cpp \
+    pluginservice.cpp \
+    pluginserviceadaptor.cpp
 
 RESOURCES += \
     harmony.qrc
@@ -35,8 +41,10 @@ RESOURCES += \
 OTHER_FILES += \
     org.sfietkonstantin.harmony.identificationservice.xml \
     org.sfietkonstantin.harmony.nodemanager.xml \
-    org.sfietkonstantin.harmony.nodeconfigurationservice.xml
+    org.sfietkonstantin.harmony.nodeconfigurationservice.xml \
+    org.sfietkonstantin.harmony.pluginservice.xml
 
 system(qdbusxml2cpp org.sfietkonstantin.harmony.identificationservice.xml -a identificationserviceadaptor -c IdentificationServiceAdaptor)
 system(qdbusxml2cpp org.sfietkonstantin.harmony.nodemanager.xml -a nodemanageradaptor -c NodeManagerAdaptor)
 system(qdbusxml2cpp org.sfietkonstantin.harmony.nodeconfigurationservice.xml -a nodeconfigurationserviceadaptor -c NodeConfigurationServiceAdaptor)
+system(qdbusxml2cpp org.sfietkonstantin.harmony.pluginservice.xml -a pluginserviceadaptor -c PluginServiceAdaptor -i pluginservice.h)

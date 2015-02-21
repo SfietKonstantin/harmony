@@ -30,13 +30,17 @@
  */
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QtPlugin>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <serviceprovider.h>
 #include <certificatemanager.h>
 #include <nodemanager.h>
+#include <pluginmanager.h>
 #include <iostream>
 #include <signal.h>
+
+Q_IMPORT_PLUGIN(HarmonyTestPlugin)
 
 void help()
 {
@@ -77,6 +81,12 @@ int main(int argc, char **argv)
     HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
     if (!certificateManager->hasCertificates()) {
         certificateManager->createCertificates();
+    }
+    PluginManager::Ptr pluginManager = PluginManager::create();
+    QList<HarmonyExtension *> plugins = pluginManager->plugins();
+    qDebug() << "Loaded plugins:" << plugins.count();
+    for (HarmonyExtension *plugin : plugins) {
+        qDebug() << plugin->id() << ":" << plugin->name();
     }
     HarmonyServiceProvider::Ptr serviceProvider = HarmonyServiceProvider::create(certificateManager);
     NodeManager::Ptr nodeManager = NodeManager::create();

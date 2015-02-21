@@ -29,50 +29,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include <harmonyextension.h>
+#ifndef PLUGINSERVICE_H
+#define PLUGINSERVICE_H
 
-class HarmonyTestPlugin: public HarmonyExtension
+#include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
+#include "pluginmanager.h"
+
+class HarmonyPluginPrivate;
+class HarmonyPlugin
 {
-    Q_OBJECT
-#ifndef SONAR_RUN
-    Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
-#endif
 public:
-    QString id() const override
-    {
-        return "test";
-    }
-
-    QString name() const override
-    {
-        return "Harmony test plugin";
-    }
-
-    QString description() const override
-    {
-        return "The Harmony test plugin.";
-    }
-
-    QList<HarmonyEndpoint> endpoints() const override
-    {
-        QList<HarmonyEndpoint> endpoints;
-        HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
-        HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
-        HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
-        endpoints.append(testGet);
-        endpoints.append(testPost);
-        endpoints.append(testDelete);
-        return endpoints;
-    }
-
-    HarmonyRequestResult request(const QString &method, const QJsonDocument &request)
-    {
-        QJsonObject returned;
-        returned.insert("method", method);
-        returned.insert("request", request.object());
-
-        return HarmonyRequestResult(QJsonDocument(returned));
-    }
+    explicit HarmonyPlugin();
+    explicit HarmonyPlugin(const QString &id, const QString &name, const QString &description);
+    HarmonyPlugin(const HarmonyPlugin &other);
+    HarmonyPlugin & operator=(const HarmonyPlugin &other);
+    virtual ~HarmonyPlugin();
+    bool operator==(const HarmonyPlugin &other) const;
+    bool isNull() const;
+    QString id() const;
+    void setId(const QString &id);
+    QString name() const;
+    void setName(const QString &name);
+    QString description() const;
+    void setDescription(const QString &description);
+private:
+    QSharedDataPointer<HarmonyPluginPrivate> d_ptr;
 };
 
-#include "plugin.moc"
+Q_DECLARE_METATYPE(HarmonyPlugin)
+QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyPlugin &harmonyPlugin);
+const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyPlugin &harmonyPlugin);
+
+class PluginServicePrivate;
+class PluginService : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(QList<HarmonyPlugin> plugins READ plugins CONSTANT)
+    Q_PROPERTY(QList<HarmonyPlugin> Plugins READ plugins CONSTANT)
+public:
+    typedef QSharedPointer<PluginService> Ptr;
+    virtual ~PluginService();
+    QList<HarmonyPlugin> plugins() const;
+    static Ptr create(PluginManager::Ptr pluginManager);
+protected:
+    QScopedPointer<PluginServicePrivate> d_ptr;
+private:
+    explicit PluginService();
+    Q_DECLARE_PRIVATE(PluginService)
+};
+
+#endif // PLUGINSERVICE_H

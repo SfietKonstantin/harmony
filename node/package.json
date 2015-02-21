@@ -14,7 +14,11 @@
         "dbus": "~0.2.10",
         "async": "~0.9.0",
         "express-jwt": "~1.0.0",
-        "jsonwebtoken": "~3.2.0"
+        "jsonwebtoken": "~3.2.0",
+        "ejs": "~2.2.0"
+    },
+    "devDependencies": {
+        "supertest": "~0.15.0"
     },
     "bundledDependencies": [
         "express",
@@ -25,6 +29,7 @@
         "dbus",
         "async",
         "express-jwt",
-        "jsonwebtoken"
+        "jsonwebtoken",
+        "ejs"
     ]
 } 

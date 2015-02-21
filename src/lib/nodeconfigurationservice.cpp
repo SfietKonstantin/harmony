@@ -30,7 +30,6 @@
  */
 
 #include "nodeconfigurationservice.h"
-#include "certificatemanager.h"
 #include "nodeconfigurationserviceadaptor.h"
 #include <QtCore/QDebug>
 
