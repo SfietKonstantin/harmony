@@ -6,7 +6,7 @@ QT = core dbus
 include(../../config.pri)
 
 INCLUDEPATH += ../../lib
-LIBS += -L../../plugins/test -lharmonytest
+LIBS += -L../../plugins/test -lharmonytestplugin
 LIBS += -L../../lib -lharmony
 
 SOURCES += main.cpp

@@ -132,26 +132,11 @@ QString IdentificationService::password() const
 
 QStringList IdentificationService::registeredClients() const
 {
-    return RegisteredClients();
-}
-
-bool IdentificationService::registerClient(const QString &token, const QString &password)
-{
-    return RegisterClient(token, password);
-}
-
-bool IdentificationService::unregisterClient(const QString &token)
-{
-    return UnregisterClient(token);
-}
-
-QStringList IdentificationService::RegisteredClients() const
-{
     Q_D(const IdentificationService);
     return d->registeredClients.toList();
 }
 
-bool IdentificationService::RegisterClient(const QString &token, const QString &password)
+bool IdentificationService::registerClient(const QString &token, const QString &password)
 {
     Q_D(IdentificationService);
     if (d->password != password) {
@@ -168,7 +153,7 @@ bool IdentificationService::RegisterClient(const QString &token, const QString &
     return true;
 }
 
-bool IdentificationService::UnregisterClient(const QString &token)
+bool IdentificationService::unregisterClient(const QString &token)
 {
     Q_D(IdentificationService);
     if (!d->registeredClients.contains(token)) {
@@ -176,4 +161,19 @@ bool IdentificationService::UnregisterClient(const QString &token)
     }
     d->registeredClients.remove(token);
     return true;
+}
+
+QStringList IdentificationService::RegisteredClients() const
+{
+    return registeredClients();
+}
+
+bool IdentificationService::RegisterClient(const QString &token, const QString &password)
+{
+    return registerClient(token, password);
+}
+
+bool IdentificationService::UnregisterClient(const QString &token)
+{
+    return unregisterClient(token);
 }

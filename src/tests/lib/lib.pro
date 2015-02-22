@@ -12,8 +12,10 @@ LIBS += -L../../lib -lharmony
 
 HEADERS += \
     testserviceprovider.h \
-    utils.h
+    utils.h \
+    dbusintrospect.h
 
 SOURCES += \
     testserviceprovider.cpp \
-    utils.cpp
+    utils.cpp \
+    dbusintrospect.cpp

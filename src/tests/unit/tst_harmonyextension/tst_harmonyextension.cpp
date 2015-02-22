@@ -35,6 +35,8 @@
 #include "testadaptor.h"
 #include "testproxy.h"
 
+Q_IMPORT_PLUGIN(HarmonyTestPlugin)
+
 class DBusTestObject: public QObject
 {
     Q_OBJECT
@@ -69,6 +71,7 @@ private Q_SLOTS:
     void testHarmonyEndpointDBus();
     void testHarmonyRequestResult();
     void testHarmonyRequestResultDBus();
+    void testPluginManager();
 };
 
 void TstHarmonyExtension::testHarmonyEndpoint()
@@ -122,6 +125,7 @@ void TstHarmonyExtension::testHarmonyEndpointDBus()
 
     HarmonyEndpoint endpoint (HarmonyEndpoint::Post, "test");
     TestProxy proxy ("org.sfietkonstantin.Harmony", "/test", QDBusConnection::sessionBus());
+
     HarmonyEndpoint result = proxy.TestEndpoint(endpoint);
     QVERIFY(result == endpoint);
 
@@ -212,6 +216,7 @@ void TstHarmonyExtension::testHarmonyRequestResultDBus()
 
     HarmonyRequestResult endpoint ("/usr/bin/harmony");
     TestProxy proxy ("org.sfietkonstantin.Harmony", "/test", QDBusConnection::sessionBus());
+
     HarmonyRequestResult result = proxy.TestRequestResult(endpoint);
     QVERIFY(result == endpoint);
 
@@ -223,6 +228,21 @@ void TstHarmonyExtension::testHarmonyRequestResultDBus()
     QVERIFY(result == endpoint);
 
     QDBusConnection::sessionBus().unregisterObject("/test");
+}
+
+void TstHarmonyExtension::testPluginManager()
+{
+    PluginManager::Ptr pluginManager = PluginManager::create();
+    QList<HarmonyExtension *> plugins = pluginManager->plugins();
+    QCOMPARE(plugins.count(), 1);
+
+    const HarmonyExtension *testPlugin = plugins.first();
+    QCOMPARE(testPlugin->id(), QString("test"));
+    QCOMPARE(testPlugin->name(), QString("Harmony test plugin"));
+    QCOMPARE(testPlugin->description(), QString("The Harmony test plugin."));
+
+    const QList<HarmonyEndpoint> &endpoints = testPlugin->endpoints();
+    QCOMPARE(endpoints.count(), 3);
 }
 
 

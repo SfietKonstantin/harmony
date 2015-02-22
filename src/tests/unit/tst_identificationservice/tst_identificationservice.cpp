@@ -32,6 +32,10 @@
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
 #include <identificationservice.h>
+#include <testserviceprovider.h>
+#include <dbusintrospect.h>
+#include <QtCore/QDebug>
+#include "testproxy.h"
 
 class TstIdentificationService : public QObject
 {
@@ -44,64 +48,76 @@ private Q_SLOTS:
 
 void TstIdentificationService::testDBusRegister()
 {
-    // Calling create the first time should register to DBus
-    // and return a valid pointer
-    IdentificationService::Ptr first = IdentificationService::create();
-    QVERIFY(!first.isNull());
+    TestServiceProvider::create();
+    QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/identificationservice").isValid());
+    {
+        // Calling create the first time should register to DBus
+        // and return a valid pointer
+        IdentificationService::Ptr first = IdentificationService::create();
+        QVERIFY(!first.isNull());
 
-    // Calling create a second time should fail, as it is already
-    // registered to DBus
-    IdentificationService::Ptr  second = IdentificationService::create();
-    QVERIFY(second.isNull());
+        QVERIFY(DBusIntrospect("org.sfietkonstantin.Harmony", "/identificationservice").isValid());
+
+        // Calling create a second time should fail, as it is already
+        // registered to DBus
+        IdentificationService::Ptr  second = IdentificationService::create();
+        QVERIFY(second.isNull());
+    }
+    QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/identificationservice").isValid());
 }
 
 void TstIdentificationService::testClientRegister()
 {
+    TestServiceProvider::create();
     IdentificationService::Ptr service = IdentificationService::create();
+    TestProxy proxy ("org.sfietkonstantin.Harmony", "/identificationservice",
+                     QDBusConnection::sessionBus());
     QSignalSpy spy (service.data(), SIGNAL(passwordChanged()));
 
     QString testClient ("testclient");
 
     // Register client
     QString password = service->password();
-    QVERIFY(service->registerClient(testClient, password));
+    QVERIFY(proxy.RegisterClient(testClient, password));
 
     // Password has changed after registering client
     QCOMPARE(spy.count(), 1);
     QVERIFY(service->password() != password);
 
     // Client is registered
-    QCOMPARE(service->registeredClients().size(), 1);
-    QCOMPARE(service->registeredClients().first(), testClient);
+    QCOMPARE(proxy.RegisteredClients().value().size(), 1);
+    QCOMPARE(proxy.RegisteredClients().value().first(), testClient);
 
     // Unregister
-    QVERIFY(service->unregisterClient(testClient));
-    QVERIFY(service->registeredClients().isEmpty());
+    QVERIFY(proxy.UnregisterClient(testClient));
+    QVERIFY(proxy.RegisteredClients().value().isEmpty());
 }
 
 void TstIdentificationService::testPassword()
 {
     IdentificationService::Ptr service = IdentificationService::create();
+    TestProxy proxy ("org.sfietkonstantin.Harmony", "/identificationservice",
+                     QDBusConnection::sessionBus());
     QSignalSpy spy (service.data(), SIGNAL(passwordChanged()));
 
     QString testClient ("testclient");
     QString password = service->password();
 
     // Fail to register client
-    QVERIFY(!service->registerClient(testClient, QString()));
-    QVERIFY(service->registeredClients().isEmpty());
+    QVERIFY(!proxy.RegisterClient(testClient, QString()));
+    QVERIFY(proxy.RegisteredClients().value().isEmpty());
     QCOMPARE(spy.count(), 0);
     QCOMPARE(service->password(), password);
 
     // Second time
-    QVERIFY(!service->registerClient(testClient, QString()));
-    QVERIFY(service->registeredClients().isEmpty());
+    QVERIFY(!proxy.RegisterClient(testClient, QString()));
+    QVERIFY(proxy.RegisteredClients().value().isEmpty());
     QCOMPARE(spy.count(), 0);
     QCOMPARE(service->password(), password);
 
     // Third time
-    QVERIFY(!service->registerClient(testClient, QString()));
-    QVERIFY(service->registeredClients().isEmpty());
+    QVERIFY(!proxy.RegisterClient(testClient, QString()));
+    QVERIFY(proxy.RegisteredClients().value().isEmpty());
 
     // Password should have changed
     QCOMPARE(spy.count(), 1);

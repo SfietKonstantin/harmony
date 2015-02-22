@@ -1,5 +1,5 @@
 TEMPLATE = lib
-TARGET = harmonytest
+TARGET = harmonytestplugin
 QT = core
 
 INCLUDEPATH += ../../lib

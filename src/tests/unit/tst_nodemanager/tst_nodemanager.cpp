@@ -36,6 +36,9 @@
 #include <QtDBus/QDBusConnection>
 #include <QtTest/QSignalSpy>
 #include <nodemanager.h>
+#include <testserviceprovider.h>
+#include <dbusintrospect.h>
+#include "testproxy.h"
 
 Q_DECLARE_METATYPE(NodeManager::Status)
 
@@ -73,15 +76,22 @@ void TstNodeManager::initTestCase()
 
 void TstNodeManager::testDBusRegister()
 {
-    // Calling create the first time should register to DBus
-    // and return a valid pointer
-    NodeManager::Ptr first = NodeManager::create();
-    QVERIFY(!first.isNull());
+    TestServiceProvider::create();
+    QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/nodemanager").isValid());
+    {
+        // Calling create the first time should register to DBus
+        // and return a valid pointer
+        NodeManager::Ptr first = NodeManager::create();
+        QVERIFY(!first.isNull());
 
-    // Calling create a second time should fail, as it is already
-    // registered to DBus
-    NodeManager::Ptr  second = NodeManager::create();
-    QVERIFY(second.isNull());
+        QVERIFY(DBusIntrospect("org.sfietkonstantin.Harmony", "/nodemanager").isValid());
+
+        // Calling create a second time should fail, as it is already
+        // registered to DBus
+        NodeManager::Ptr  second = NodeManager::create();
+        QVERIFY(second.isNull());
+    }
+    QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/nodemanager").isValid());
 }
 
 class StatusWatcher: public QObject
@@ -105,7 +115,7 @@ void TstNodeManager::testStartStopNode()
     QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
-    QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));
+    TestServiceProvider::create();
     NodeManager::Ptr instance = NodeManager::create();
 
     QSignalSpy spy (new StatusWatcher(instance.data()), SIGNAL(statusChanged(NodeManager::Status)));
@@ -135,8 +145,6 @@ void TstNodeManager::testStartStopNode()
     QCOMPARE(spy.count(), 1);
     arguments = spy.takeFirst();
     QCOMPARE(arguments.first().value<NodeManager::Status>(), NodeManager::Stopped);
-
-    QDBusConnection::sessionBus().unregisterService("org.sfietkonstantin.Harmony");
 }
 
 void TstNodeManager::testStartErrorNode()
@@ -144,7 +152,7 @@ void TstNodeManager::testStartErrorNode()
     QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
-    QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));
+    TestServiceProvider::create();
     NodeManager::Ptr instance = NodeManager::create();
 
     QSignalSpy spy (new StatusWatcher(instance.data()), SIGNAL(statusChanged(NodeManager::Status)));
@@ -162,8 +170,6 @@ void TstNodeManager::testStartErrorNode()
     QCOMPARE(spy.count(), 1);
     arguments = spy.takeFirst();
     QCOMPARE(arguments.first().value<NodeManager::Status>(), NodeManager::Stopped);
-
-    QDBusConnection::sessionBus().unregisterService("org.sfietkonstantin.Harmony");
 }
 
 void TstNodeManager::testStartTimeoutNode()
@@ -171,7 +177,7 @@ void TstNodeManager::testStartTimeoutNode()
     QStandardPaths::enableTestMode(true);
     QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
 
-    QVERIFY(QDBusConnection::sessionBus().registerService("org.sfietkonstantin.Harmony"));
+    TestServiceProvider::create();
     NodeManager::Ptr instance = NodeManager::create();
 
     QSignalSpy spy (new StatusWatcher(instance.data()), SIGNAL(statusChanged(NodeManager::Status)));
@@ -189,8 +195,6 @@ void TstNodeManager::testStartTimeoutNode()
     QCOMPARE(spy.count(), 1);
     arguments = spy.takeFirst();
     QCOMPARE(arguments.first().value<NodeManager::Status>(), NodeManager::Stopped);
-
-    QDBusConnection::sessionBus().unregisterService("org.sfietkonstantin.Harmony");
 }
 
 QTEST_MAIN(TstNodeManager)

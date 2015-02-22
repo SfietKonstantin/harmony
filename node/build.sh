@@ -24,6 +24,6 @@ popd > /dev/null
 popd > /dev/null
 
 # Build test files
-pushd test > /dev/null
+pushd tests > /dev/null
 coffee -c *.coffee
 popd > /dev/null

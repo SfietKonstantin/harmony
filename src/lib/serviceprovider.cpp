@@ -34,6 +34,7 @@
 #include <QtDBus/QDBusMetaType>
 #include <QtDBus/QDBusConnection>
 #include "harmonyextension.h"
+#include "pluginservice.h"
 
 static const char *SERVICE = "org.sfietkonstantin.Harmony";
 static const char *PATH = "/";
@@ -44,6 +45,7 @@ public:
     explicit ServiceProviderPrivate(ServiceProvider *q);
     NodeConfigurationService::Ptr nodeConfigurationService;
     IdentificationService::Ptr identificationService;
+    PluginService::Ptr pluginService;
 protected:
     ServiceProvider * const q_ptr;
 private:
@@ -56,12 +58,14 @@ ServiceProviderPrivate::ServiceProviderPrivate(ServiceProvider *q)
 }
 
 ServiceProvider::ServiceProvider(NodeConfigurationService::Ptr nodeConfigurationService,
-                                 IdentificationService::Ptr identificationService)
+                                 IdentificationService::Ptr identificationService,
+                                 PluginService::Ptr pluginService)
     : QObject(), d_ptr(new ServiceProviderPrivate(this))
 {
     Q_D(ServiceProvider);
     d->nodeConfigurationService = nodeConfigurationService;
     d->identificationService = identificationService;
+    d->pluginService = pluginService;
 }
 
 ServiceProvider::~ServiceProvider()
@@ -83,10 +87,17 @@ NodeConfigurationService::Ptr ServiceProvider::nodeConfigurationService() const
     return d->nodeConfigurationService;
 }
 
+PluginService::Ptr ServiceProvider::pluginService() const
+{
+    Q_D(const ServiceProvider);
+    return d->pluginService;
+}
+
 bool ServiceProvider::registerToDBus(ServiceProvider::Ptr instance)
 {
     qDBusRegisterMetaType<HarmonyEndpoint>();
     qDBusRegisterMetaType<HarmonyRequestResult>();
+    qDBusRegisterMetaType<HarmonyPlugin>();
 
     if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
         qWarning() << "Failed to register DBus service" << SERVICE;
@@ -101,15 +112,17 @@ bool ServiceProvider::registerToDBus(ServiceProvider::Ptr instance)
     return true;
 }
 
-HarmonyServiceProvider::HarmonyServiceProvider(HarmonyCertificateManager::Ptr certificateManager)
+HarmonyServiceProvider::HarmonyServiceProvider(HarmonyCertificateManager::Ptr certificateManager,
+                                               PluginManager::Ptr pluginManager)
     : ServiceProvider(NodeConfigurationService::create(certificateManager),
-                      IdentificationService::create())
+                      IdentificationService::create(), PluginService::create(pluginManager))
 {
 }
 
-ServiceProvider::Ptr HarmonyServiceProvider::create(HarmonyCertificateManager::Ptr certificateManager)
+ServiceProvider::Ptr HarmonyServiceProvider::create(HarmonyCertificateManager::Ptr certificateManager,
+                                                    PluginManager::Ptr pluginManager)
 {
-    Ptr instance = Ptr(new HarmonyServiceProvider(certificateManager));
+    Ptr instance = Ptr(new HarmonyServiceProvider(certificateManager, pluginManager));
     if (!ServiceProvider::registerToDBus(instance)) {
         return Ptr();
     }

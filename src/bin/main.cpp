@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
 #endif
 
     HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
-    HarmonyServiceProvider::create(certificateManager);
+    PluginManager::Ptr pluginManager = PluginManager::create();
+    HarmonyServiceProvider::create(certificateManager, pluginManager);
 
     // View
 #ifndef DESKTOP

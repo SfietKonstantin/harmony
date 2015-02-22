@@ -88,7 +88,8 @@ int main(int argc, char **argv)
     for (HarmonyExtension *plugin : plugins) {
         qDebug() << plugin->id() << ":" << plugin->name();
     }
-    HarmonyServiceProvider::Ptr serviceProvider = HarmonyServiceProvider::create(certificateManager);
+    HarmonyServiceProvider::Ptr serviceProvider = HarmonyServiceProvider::create(certificateManager,
+                                                                                 pluginManager);
     NodeManager::Ptr nodeManager = NodeManager::create();
     NodeManager *nodeManagerData = nodeManager.data();
     QObject::connect(nodeManagerData, &NodeManager::statusChanged, [nodeManagerData]{

@@ -1,0 +1,11 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.sfietkonstantin.Harmony">
+        <method name="TestPlugin">
+            <annotation name="org.qtproject.QtDBus.QtTypeName.In0" value="const HarmonyPlugin &amp;"/>
+            <arg name="input" type="(ss)" direction="in"/>
+            <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="HarmonyPlugin"/>
+            <arg name="output" type="(ss)" direction="out"/>
+        </method>
+    </interface>
+</node>

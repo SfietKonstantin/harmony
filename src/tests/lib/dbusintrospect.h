@@ -29,21 +29,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include <QtTest/QtTest>
-//#include <nodemanager.h>
+#ifndef DBUSPING_H
+#define DBUSPING_H
 
-class TstHarmonyNodeBridge : public QObject
+#include <QtCore/QString>
+#include <QtCore/QSharedPointer>
+#include <QtDBus/QDBusConnection>
+
+class DBusIntrospectPrivate;
+class DBusIntrospect
 {
-    Q_OBJECT
-private Q_SLOTS:
-    void initTestCase();
+public:
+    explicit DBusIntrospect();
+    explicit DBusIntrospect(const QString &service, const QString &path,
+                            const QDBusConnection &connection = QDBusConnection::sessionBus());
+    DBusIntrospect(const DBusIntrospect &other);
+    DBusIntrospect & operator=(const DBusIntrospect &other);
+    virtual ~DBusIntrospect();
+    bool isValid() const;
+    const QDBusError & error() const;
+    QStringList children() const;
+private:
+    QSharedDataPointer<DBusIntrospectPrivate> d_ptr;
 };
 
-void TstHarmonyNodeBridge::initTestCase()
-{
-}
+bool dbusPing(const QString &service, const QString &path);
 
-QTEST_MAIN(TstHarmonyNodeBridge)
-
-#include "tst_harmonynodebridge.moc"
-
+#endif // DBUSPING_H

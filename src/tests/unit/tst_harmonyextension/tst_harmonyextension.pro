@@ -7,12 +7,12 @@ include(../../../config.pri)
 
 INCLUDEPATH += ../../lib \
     ../../../lib
-LIBS += -L../../lib -lharmonytest \
+LIBS += -L../../../plugins/test -lharmonytestplugin \
+    -L../../lib -lharmonytest \
     -L../../../lib -lharmony
 
 HEADERS += testadaptor.h \
     testproxy.h
-
 
 SOURCES += tst_harmonyextension.cpp \
     testadaptor.cpp \

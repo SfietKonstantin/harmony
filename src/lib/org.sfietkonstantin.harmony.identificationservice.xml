@@ -5,12 +5,12 @@
             <arg name="registeredClients" type="as" direction="out"/>
         </method>
         <method name="RegisterClient">
-            <arg name="clientIp" type="s" direction="in"/>
+            <arg name="clientId" type="s" direction="in"/>
             <arg name="password" type="s" direction="in"/>
             <arg name="registered" type="b" direction="out"/>
         </method>
         <method name="UnregisterClient">
-            <arg name="clientIp" type="s" direction="in"/>
+            <arg name="clientId" type="s" direction="in"/>
             <arg name="unregistered" type="b" direction="out"/>
         </method>
         <signal name="PasswordChanged" />

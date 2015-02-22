@@ -37,6 +37,7 @@
 #include "nodeconfigurationservice.h"
 #include "certificatemanager.h"
 #include "identificationservice.h"
+#include "pluginservice.h"
 
 class ServiceProviderPrivate;
 class ServiceProvider : public QObject
@@ -47,10 +48,12 @@ public:
     virtual ~ServiceProvider();
     NodeConfigurationService::Ptr nodeConfigurationService() const;
     IdentificationService::Ptr identificationService() const;
+    PluginService::Ptr pluginService() const;
 protected:
     QScopedPointer<ServiceProviderPrivate> d_ptr;
     explicit ServiceProvider(NodeConfigurationService::Ptr nodeConfigurationService = NodeConfigurationService::Ptr(),
-                             IdentificationService::Ptr identificationService = IdentificationService::Ptr());
+                             IdentificationService::Ptr identificationService = IdentificationService::Ptr(),
+                             PluginService::Ptr pluginService = PluginService::Ptr());
     static bool registerToDBus(Ptr instance);
 private:
     Q_DECLARE_PRIVATE(ServiceProvider)
@@ -59,9 +62,11 @@ private:
 class HarmonyServiceProvider: public ServiceProvider
 {
 public:
-    static Ptr create(HarmonyCertificateManager::Ptr certificateManager);
+    static Ptr create(HarmonyCertificateManager::Ptr certificateManager,
+                      PluginManager::Ptr pluginManager);
 protected:
-    explicit HarmonyServiceProvider(CertificateManager::Ptr certificateManager);
+    explicit HarmonyServiceProvider(CertificateManager::Ptr certificateManager,
+                                    PluginManager::Ptr pluginManager);
 };
 
 #endif // SERVICEPROVIDER_H
