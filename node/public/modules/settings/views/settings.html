@@ -1,14 +1,14 @@
-<div ng-controller="SettingsController" class="container">
+<div class="container">
     <div class="row">
-        <div class="col-md-3">
-            <div class="list-group" id="sidebar">
-                <a ui-sref=".main" class="list-group-item">Harmony settings</a>
-                <a ui-sref=".debug" class="list-group-item">Debug settings</a>
-                <a ui-sref=".about" class="list-group-item">About</a>
-            </div>
+        <div class="col-sm-3 col-md-3 sidebar">
+            <ul class="nav nav-sidebar">
+                <li><a ui-sref=".main">Harmony settings</a></li>
+                <li><a ui-sref=".debug">Debug</a></li>
+                <li><a ui-sref=".about">About</a></li>
+            </ul>
         </div>
-        <div class="col-md-9">
-            <div ui-view></div>
+        <div class="col-sm-6 col-md-9 main" ui-view>
+            <!--<div ui-view></div>-->
         </div>
     </div>
 </div>

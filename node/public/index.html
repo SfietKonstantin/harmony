@@ -1,29 +1,38 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="css/bootstrap.min.css" />
         <link rel="stylesheet" href="css/font-awesome.css" />
         <link rel="stylesheet" href="css/styles.css" />
         <script src="lib/angular.js"></script>
         <script src="lib/angular-ui-router.js"></script>
+        <script src="lib/ui-bootstrap-tpls.js"></script>
         <script src="main.js"></script>
         <script src="modules/login/login.js"></script>
         <script src="modules/settings/settings.js"></script>
+        <script src="modules/settings/settingsdebug.js"></script>
     </head>
     <body ng-app="app">
         <header>
             <nav class="navbar navbar-default">
-                <div class="container">
+                <div ng-controller="CollapseController" class="container">
                     <div class="navbar-header">
+                        <button type="button" class="navbar-toggle" ng-show="loggedIn" ng-click="isCollapsed=!isCollapsed">
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
                         <a class="navbar-brand" ui-sref="home">Harmony</a>
                     </div>
-
-                    <ul class="nav navbar-nav navbar-right" ng-show="loggedIn">
-                        <li><a ui-sref="home">Home</a></li>
-                        <li><a ui-sref="apps">Apps</a></li>
-                        <li><a ui-sref="settings.main">Settings</a></li>
-                        <li><a ui-sref="login">Disconnect</a></li>
-                    </ul>
+                    <div id="navbar" class="navbar-collapse collapse" collapse="isCollapsed">
+                        <ul class="nav navbar-nav navbar-right" ng-show="loggedIn" >
+                            <li><a ui-sref="home">Home</a></li>
+                            <li><a ui-sref="apps">Apps</a></li>
+                            <li><a ui-sref="settings.main">Settings</a></li>
+                            <li><a ui-sref="login">Disconnect</a></li>
+                        </ul>
+                    </div>
                 </div>
             </nav>
         </header>

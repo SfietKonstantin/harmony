@@ -98,6 +98,7 @@ bool ServiceProvider::registerToDBus(ServiceProvider::Ptr instance)
     qDBusRegisterMetaType<HarmonyEndpoint>();
     qDBusRegisterMetaType<HarmonyRequestResult>();
     qDBusRegisterMetaType<HarmonyPlugin>();
+    qDBusRegisterMetaType<QList<HarmonyPlugin> >();
 
     if (!QDBusConnection::sessionBus().registerService(SERVICE)) {
         qWarning() << "Failed to register DBus service" << SERVICE;

@@ -1,4 +1,4 @@
-settings = angular.module 'Settings', ['ui.router']
+settings = angular.module 'Settings', ['ui.router', 'Settings.Debug']
 
 settings.config ($stateProvider, $urlRouterProvider) ->
     $stateProvider.state('settings.main', {
@@ -7,7 +7,8 @@ settings.config ($stateProvider, $urlRouterProvider) ->
         authenticate: true
     }).state('settings.debug', {
         url: '/debug',
-        templateUrl: 'modules/settings/views/settings-general.html',
+        templateUrl: 'modules/settings/views/settings-debug.html',
+        controller: 'SettingsDebugController',
         authenticate: true
     }).state('settings.about', {
         url: '/about',

@@ -1,0 +1,24 @@
+<h1 class="page-header">Debug</h1>
+
+<p>This page contains debug information and settings.</p>
+
+<h2 class="page-header" ng-show="havePlugins">Plugins</h2>
+
+<div class="table-responsive">
+    <table class="table table-striped" ng-show="havePlugins">
+        <thead>
+            <tr>
+                <th>Plugin</th>
+                <th>Name</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="plugin in plugins">
+                <td>{{plugin.id}}</td>
+                <td>{{plugin.name}}</td>
+                <td>{{plugin.description}}</td>
+            </tr>
+        </tbody>
+</table>
+</div>

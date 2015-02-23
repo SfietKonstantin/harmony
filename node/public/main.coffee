@@ -1,5 +1,5 @@
 angular.module 'Login', []
-app = angular.module 'app', ['Login', 'Settings', 'ui.router']
+app = angular.module 'app', ['Login', 'Settings', 'ui.router', 'ui.bootstrap']
 
 app.config ($stateProvider, $urlRouterProvider) ->
     $stateProvider.state('login', {
@@ -25,6 +25,20 @@ app.config ($stateProvider, $urlRouterProvider) ->
         $state = $injector.get "$state"
         $state.go "home"
     return
+
+app.controller 'CollapseController', ($scope)->
+    $scope.isCollapsed = true
+
+app.factory 'authInterceptor', ($rootScope, LoginManager) ->
+    return {
+        request: (config) ->
+            config.headers = config.headers || {}
+            if LoginManager.isLoggedIn()
+                config.headers.Authorization = 'Bearer ' + LoginManager.token
+            return config
+    }
+app.config ($httpProvider) ->
+    $httpProvider.interceptors.push 'authInterceptor'
 
 app.run ($rootScope, $state, LoginManager)->
     $rootScope.$on "$stateChangeStart", (event, toState, toParams, fromState, fromParams) ->

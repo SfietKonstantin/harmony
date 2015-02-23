@@ -23,6 +23,8 @@ WEBAPP_FILES = node_modules \
     public/lib/* \
     public/modules/login/*.js \
     public/modules/login/views/*.html \
+    public/modules/settings/*.js \
+    public/modules/settings/views/*.html \
     public/pages/*.html
 
 for (webappFile, WEBAPP_FILES) {

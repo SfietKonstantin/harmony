@@ -26,9 +26,11 @@ class DBusMock
 
 class AuthManagerMock
     certificatePath = ""
+    secret = null
     
     setCertificatePath: (certificatePath) ->
         @certificatePath = certificatePath
+        @secret = certificatePath
 
 describe "App", ->
     describe "init", ->

@@ -39,7 +39,7 @@ class App
         @app = express()
         @dbusInterface = dbusInterface
         @authManager = authManager
-        
+
         @app.set 'port', 8080
         @app.set 'view engine', 'ejs'
         @app.use express.static("#{__dirname}/../public")
@@ -48,26 +48,10 @@ class App
         @app.use bodyParser.json()
         @app.use bodyParser.json({type: 'application/vnd.api+json'})
         @app.use methodOverride()
-
-        # Routes
-        @app.get '/', routes.index
-        @app.get '*', routes.redirectToIndex
-        @app.post '/authenticate', (req, res) =>
-            authCode = req.body["password"]
-            token = @authManager.generateToken authCode
-            @dbusInterface.identificationserviceRegisterClient token, authCode, (ok) ->
-                if ok
-                    res.json {'token': token}
-                    return
-                else
-                    res.status(401).send('Wrong authentification code')
-                    return
-                return
-            return
         return
     start: (done) ->
         if not @dbusInterface?
-            done (new NullDBusInterfaceError)
+            done new NullDBusInterfaceError
             return
         async.series [
             (callback) =>
@@ -106,6 +90,28 @@ class App
             else
                 options = results[1]
                 @authManager.setCertificatePath options.certificatePath
+
+                # Routes
+                @app.use '/api', expressJwt({secret: @authManager.secret})
+                @app.get '/', routes.index
+                @app.get '/api/plugins', (req, res) =>
+                    @dbusInterface.pluginserviceGetPlugins (plugins) ->
+                        res.json plugins
+                @app.get '*', routes.redirectToIndex
+                @app.post '/authenticate', (req, res) =>
+                    authCode = req.body["password"]
+                    token = @authManager.generateToken authCode
+                    @dbusInterface.identificationserviceRegisterClient token, authCode, (ok) ->
+                        if ok
+                            res.json {'token': token}
+                            return
+                        else
+                            res.status(401).send('Wrong authentification code')
+                            return
+                        return
+                    return
+
+                # Server
                 server = https.createServer(options, @app).listen @app.get('port'), =>
                     console.log("Server started on port #{@app.get('port')}")
                     done()
