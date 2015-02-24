@@ -26,6 +26,8 @@ PkgBR:
 Requires:
 - nodejs
 - openssl
+QMakeOptions: 
+- CONFIG+=harmonydebug
 Files:
 - '%{_bindir}/%{name}'
 - '%{_datadir}/%{name}'

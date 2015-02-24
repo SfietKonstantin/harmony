@@ -1,2 +1,2 @@
 from Config import *
-addFilter(".*") 
+addFilter("arch-dependent-file-in-usr-share")
