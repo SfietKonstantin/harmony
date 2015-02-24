@@ -30,6 +30,7 @@
  */
 
 #include <harmonyextension.h>
+#include <QtCore/QJsonObject>
 
 class HarmonyTestPlugin: public HarmonyExtension
 {
@@ -38,22 +39,22 @@ class HarmonyTestPlugin: public HarmonyExtension
     Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
 #endif
 public:
-    QString id() const override
+    QString id() const Q_DECL_OVERRIDE
     {
         return "test";
     }
 
-    QString name() const override
+    QString name() const Q_DECL_OVERRIDE
     {
         return "Harmony test plugin";
     }
 
-    QString description() const override
+    QString description() const Q_DECL_OVERRIDE
     {
         return "The Harmony test plugin.";
     }
 
-    QList<HarmonyEndpoint> endpoints() const override
+    QList<HarmonyEndpoint> endpoints() const Q_DECL_OVERRIDE
     {
         QList<HarmonyEndpoint> endpoints;
         HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");

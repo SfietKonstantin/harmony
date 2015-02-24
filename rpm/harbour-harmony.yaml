@@ -20,8 +20,6 @@ PkgConfigBR:
 - Qt5Quick
 - Qt5Test
 - sailfishapp >= 0.0.10
-- dbus-1
-- expat
 PkgBR:
 - nodejs-npm
 - coffeescript

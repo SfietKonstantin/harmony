@@ -17,6 +17,7 @@ system($$PWD/build.sh)
 WEBAPP_INSTALL_PREFIX = /usr/share/harbour-harmony/node
 WEBAPP_FILES = node_modules \
     *.js \
+    lib/*.js \
     public/*.js \
     public/index.html \
     public/css/* \

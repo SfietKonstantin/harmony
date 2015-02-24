@@ -29,8 +29,6 @@ BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Test)
 BuildRequires:  pkgconfig(sailfishapp) >= 0.0.10
-BuildRequires:  pkgconfig(dbus-1)
-BuildRequires:  pkgconfig(expat)
 BuildRequires:  nodejs-npm
 BuildRequires:  coffeescript
 
