@@ -58,7 +58,7 @@ npm install %{SOURCE1}
 cp -r node_modules/harmony/node_modules/ node/
 # << build pre
 
-%qtc_qmake5 
+%qtc_qmake5 CONFIG+=harmonydebug
 
 %qtc_make %{?_smp_mflags}
 
