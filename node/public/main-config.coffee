@@ -1,26 +1,8 @@
 angular.module 'Login', []
-app = angular.module 'app', ['Login', 'Settings', 'ui.router', 'ui.bootstrap']
+app = angular.module 'app'
 
 app.config ($stateProvider, $urlRouterProvider) ->
-    $stateProvider.state('login', {
-        url: '/login',
-        templateUrl: 'modules/login/views/login.html',
-        controller: 'LoginController'
-    }).state('home', {
-        url: '/',
-        templateUrl: 'pages/home.html',
-        authenticate: true
-    }).state('apps', {
-        url: '/apps',
-        templateUrl: 'pages/home.html',
-        authenticate: true
-    }).state('settings', {
-        url: '/settings',
-        templateUrl: 'modules/settings/views/settings.html',
-        controller: 'SettingsController',
-        abstract: true,
-        authenticate: true
-    })
+    # State management done in index.ejs
     $urlRouterProvider.otherwise ($injector, $location) ->
         $state = $injector.get "$state"
         $state.go "home"

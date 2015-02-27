@@ -5,11 +5,13 @@ supertest = require 'supertest'
 class DBusMock
     registerNodeOk = false
     getCertificatePathOk = false
+    getPluginsOk = false
     certificatesPath = ""
     
-    constructor: (registerNodeOk, getCertificatePathOk, certificatesPath) ->
+    constructor: (registerNodeOk, getCertificatePathOk, getPluginsOk, certificatesPath) ->
         @registerNodeOk = registerNodeOk
         @getCertificatePathOk = getCertificatePathOk
+        @getPluginsOk = getPluginsOk
         @certificatesPath = certificatesPath
         
     nodemanagerRegisterNode: (callback)->
@@ -23,6 +25,11 @@ class DBusMock
             throw new Error("nodeconfigurationserviceGetCertificatePath error")
         else
             callback @certificatesPath
+    pluginserviceGetPlugins: (callback) ->
+        if not @getPluginsOk
+            throw new Error("pluginserviceGetPlugins error")
+        else
+            callback []
 
 class AuthManagerMock
     certificatePath = ""
@@ -45,27 +52,34 @@ describe "App", ->
                 assert.equal err.name, "NullDBusInterfaceError"
                 done()
         it "Start with DBus, registerNodeFail", (done) ->
-            appInstance = new app new DBusMock(false, true), new AuthManagerMock
+            appInstance = new app new DBusMock(false, true, true), new AuthManagerMock
             appInstance.start (err) ->
                 assert err?, "Failure to start"
                 assert.equal err.name, "NodeRegistrationError"
                 done()
         it "Start with DBus, getCertificatePathFail", (done) ->
-            appInstance = new app new DBusMock(true, false), new AuthManagerMock
+            appInstance = new app new DBusMock(true, false, true), new AuthManagerMock
             appInstance.start (err) ->
                 assert err?, "Failure to start"
                 assert.equal err.name, "CertificatePathError"
                 done()
         it "Start with DBus, getCertificates", (done) ->
-            appInstance = new app new DBusMock(true, true), new AuthManagerMock
+            appInstance = new app new DBusMock(true, true, true), new AuthManagerMock
             appInstance.start (err) ->
                 assert err?, "Failure to start"
                 assert.equal err.name, "CertificatesError"
                 done()
+        it "Start with DBus, pluginserviceGetPlugins", (done) ->
+            certificatePath = "#{__dirname}/ssl"
+            appInstance = new app new DBusMock(true, true, false, certificatePath), new AuthManagerMock
+            appInstance.start (err) ->
+                assert err?, "Failure to start"
+                assert.equal err.name, "PluginsError"
+                done()
         it "Start with DBus, success", (done) ->
             certificatePath = "#{__dirname}/ssl"
             authManager = new AuthManagerMock
-            appInstance = new app new DBusMock(true, true, certificatePath), authManager
+            appInstance = new app new DBusMock(true, true, true, certificatePath), authManager
             appInstance.start (err) ->
                 assert not err?, "Started"
                 assert.equal authManager.certificatePath, certificatePath

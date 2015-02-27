@@ -24,16 +24,24 @@ class CertificatePathError extends Error
     constructor: ->
         super "Failed to get certificate path"
         @name = "CertificatePathError"
-        
+
 class CertificatesError extends Error
     constructor: ->
         super "Failed to open certificates"
         @name = "CertificatesError"
 
+class PluginsError extends Error
+    constructor: ->
+        super "Failed to get plugins"
+        @name = "PluginsError"
+
+
 class App
     app = null
     dbusInterface = null
     authManager = null
+    plugins = []
+    enabledPlugins = []
 
     constructor: (dbusInterface, authManager) ->
         @app = express()
@@ -83,20 +91,38 @@ class App
                 catch error
                     callback new CertificatePathError
                 return
+            , (callback) =>
+                try 
+                    plugins = @dbusInterface.pluginserviceGetPlugins (plugins) ->
+                        callback null, plugins
+                catch error
+                    callback new PluginsError
         ], (err, results) =>
             if err?
                 done(err)
                 return
             else
                 options = results[1]
+                @app.plugins = results[2]
+                @app.enabledPlugins = []
+
+                # Get enabled plugins
+                for plugin in @app.plugins
+                    if fs.existsSync "#{__dirname}/../public/modules/#{plugin.id}/#{plugin.id}.js"
+                        @app.enabledPlugins.push plugin
+                    else
+                        console.log "Plugin #{plugin.id} will not be enabled"
+
                 @authManager.setCertificatePath options.certificatePath
 
                 # Routes
                 @app.use '/api', expressJwt({secret: @authManager.secret})
-                @app.get '/', routes.index
+                @app.get '/', (req, res) =>
+                    res.render "#{__dirname}/../views/index", { "plugins": @app.enabledPlugins }
+                @app.get '/main.js', (req, res) =>
+                    res.render "#{__dirname}/../views/main", { "plugins": @app.enabledPlugins }
                 @app.get '/api/plugins', (req, res) =>
-                    @dbusInterface.pluginserviceGetPlugins (plugins) ->
-                        res.json plugins
+                    res.json @app.plugins
                 @app.get '*', routes.redirectToIndex
                 @app.post '/authenticate', (req, res) =>
                     authCode = req.body["password"]

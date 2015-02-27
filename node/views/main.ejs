@@ -1,0 +1,37 @@
+var app = angular.module('app', ['Login', 'Apps', 'Settings', 
+<% plugins.forEach(function(plugin) {%>
+'<%= plugin.id.charAt(0).toUpperCase() + plugin.id.slice(1) %>',
+<%});%>
+'ui.router', 'ui.bootstrap']);
+app.config(function($stateProvider, $urlRouterProvider) {
+    $stateProvider.state('login', {
+        url: '/login',
+        templateUrl: 'modules/login/views/login.html',
+        controller: 'LoginController'
+    }).state('home', {
+        url: '/',
+        templateUrl: 'pages/home.html',
+        authenticate: true
+    }).state('apps', {
+        url: '/apps',
+        templateUrl: 'modules/apps/views/apps.html',
+        controller: 'AppsController',
+        authenticate: true
+    }).state('settings', {
+        url: '/settings',
+        templateUrl: 'modules/settings/views/settings.html',
+        controller: 'SettingsController',
+        abstract: true,
+        authenticate: true
+    });
+
+    <% plugins.forEach(function(plugin) {%>
+    $stateProvider.state('<%= plugin.id %>', {
+        url: '/<%= plugin.id %>',
+        templateUrl: 'modules/<%= plugin.id %>/views/<%= plugin.id %>.html',
+        controller: '<%= plugin.id.charAt(0).toUpperCase() + plugin.id.slice(1) %>Controller',
+        abstract: true,
+        authenticate: true
+    });
+    <%});%>
+}); 
