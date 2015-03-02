@@ -1,4 +1,4 @@
-var app = angular.module('app', ['Login', 'Apps', 'Settings', 
+var app = angular.module('app', ['Login', 'Settings', 
 <% plugins.forEach(function(plugin) {%>
 '<%= plugin.id.charAt(0).toUpperCase() + plugin.id.slice(1) %>',
 <%});%>
@@ -11,11 +11,6 @@ app.config(function($stateProvider, $urlRouterProvider) {
     }).state('home', {
         url: '/',
         templateUrl: 'pages/home.html',
-        authenticate: true
-    }).state('apps', {
-        url: '/apps',
-        templateUrl: 'modules/apps/views/apps.html',
-        controller: 'AppsController',
         authenticate: true
     }).state('settings', {
         url: '/settings',

@@ -8,8 +8,20 @@ app.config ($stateProvider, $urlRouterProvider) ->
         $state.go "home"
     return
 
-app.controller 'CollapseController', ($scope)->
+app.controller 'ToolbarController', ($rootScope, $scope, $http)->
     $scope.isCollapsed = true
+    $scope.isAppsOpened = false
+
+    $rootScope.$on "loggedInChanged", (event, isLoggedIn) ->
+        $http({
+            url: '/api/plugins'
+            method: 'GET'
+        }).success((data, status, header, config) ->
+            $scope.plugins = data
+        ).error((data, status, header, config)->
+            $scope.plugins = []
+        )
+        return
 
 app.factory 'authInterceptor', ($rootScope, LoginManager) ->
     return {

@@ -11,7 +11,6 @@
         <script src="main.js"></script>
         <script src="main-config.js"></script>
         <script src="modules/login/login.js"></script>
-        <script src="modules/apps/apps.js"></script>
         <script src="modules/settings/settings.js"></script>
         <script src="modules/settings/settingsdebug.js"></script>
         <% plugins.forEach(function(plugin) {%>
@@ -21,7 +20,7 @@
     <body ng-app="app">
         <header>
             <nav class="navbar navbar-default">
-                <div ng-controller="CollapseController" class="container">
+                <div ng-controller="ToolbarController" class="container">
                     <div class="navbar-header">
                         <button type="button" class="navbar-toggle" ng-show="loggedIn" ng-click="isCollapsed=!isCollapsed">
                             <span class="icon-bar"></span>
@@ -31,9 +30,14 @@
                         <a class="navbar-brand" ui-sref="home">Harmony</a>
                     </div>
                     <div id="navbar" class="navbar-collapse collapse" collapse="isCollapsed">
-                        <ul class="nav navbar-nav navbar-right" ng-show="loggedIn" >
+                        <ul class="nav navbar-nav navbar-right" ng-show="loggedIn" on-toggle="isAppsOpened=!isAppsOpened">
                             <li><a ui-sref="home">Home</a></li>
-                            <li><a ui-sref="apps">Apps</a></li>
+                            <li class="dropdown" dropdown is-open="isAppsOpened">
+                                <a href class="dropdown-toggle" data-toggle="dropdown" dropdown-toggle>Apps <span class="caret"></span></a>
+                                <ul class="dropdown-menu" role="menu" ng-repeat="plugin in plugins">
+                                    <li><a ui-sref="{{plugin.id}}.main">{{plugin.name}}</a></li>
+                                </ul>
+                            </li>
                             <li><a ui-sref="settings.main">Settings</a></li>
                             <li><a ui-sref="login">Disconnect</a></li>
                         </ul>
