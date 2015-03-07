@@ -46,7 +46,7 @@ public:
 
     QString name() const Q_DECL_OVERRIDE
     {
-        return "Harmony test plugin";
+        return "Test";
     }
 
     QString description() const Q_DECL_OVERRIDE

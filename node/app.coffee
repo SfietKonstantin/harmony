@@ -1,5 +1,5 @@
 app = require './lib/app'
-authmanager = require './authmanager'
+authmanager = require './lib/authmanager'
 dbusinterface = require './dbusinterface'
 
 harmonyApp = new app(new dbusinterface, new authmanager)

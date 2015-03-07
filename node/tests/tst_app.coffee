@@ -1,5 +1,6 @@
 assert = require 'assert'
 app = require '../lib/app'
+authManager = require '../lib/authmanager'
 supertest = require 'supertest'
 
 class DBusMock
@@ -7,19 +8,19 @@ class DBusMock
     getCertificatePathOk = false
     getPluginsOk = false
     certificatesPath = ""
-    
+
     constructor: (registerNodeOk, getCertificatePathOk, getPluginsOk, certificatesPath) ->
         @registerNodeOk = registerNodeOk
         @getCertificatePathOk = getCertificatePathOk
         @getPluginsOk = getPluginsOk
         @certificatesPath = certificatesPath
-        
+
     nodemanagerRegisterNode: (callback)->
         if not @registerNodeOk
             throw new Error("nodeManagerRegisterNode error")
         else
             callback()
-    
+
     nodeconfigurationserviceGetCertificatePath: (callback) ->
         if not @getCertificatePathOk
             throw new Error("nodeconfigurationserviceGetCertificatePath error")
@@ -29,15 +30,26 @@ class DBusMock
         if not @getPluginsOk
             throw new Error("pluginserviceGetPlugins error")
         else
-            callback []
+            callback [{id: "test"}, {id: "inexisting"}]
+    identificationserviceRegisterClient: (token, authCode, callback) ->
+        if authCode == "pass"
+            callback true
+        else
+            callback false
 
-class AuthManagerMock
-    certificatePath = ""
-    secret = null
-    
+class AuthManagerMock extends authManager
     setCertificatePath: (certificatePath) ->
         @certificatePath = certificatePath
         @secret = certificatePath
+
+runRequest = (callback) ->
+    certificatePath = "#{__dirname}/ssl"
+    appInstance = new app new DBusMock(true, true, true, certificatePath), new AuthManagerMock
+    appInstance.prepare (err) ->
+        assert not err?, "Prepared"
+        assert appInstance.app, "Express app is available"
+        callback(appInstance.app)
+
 
 describe "App", ->
     describe "init", ->
@@ -83,4 +95,70 @@ describe "App", ->
             appInstance.start (err) ->
                 assert not err?, "Started"
                 assert.equal authManager.certificatePath, certificatePath
+                assert.deepEqual appInstance.plugins, [{id: "test"}, {id: "inexisting"}]
+                assert.deepEqual appInstance.enabledPlugins, [{id: "test"}]
+                done()
+
+describe "API", ->
+    server = null
+    token = ""
+    before (done) ->
+        certificatePath = "#{__dirname}/ssl"
+        appInstance = new app new DBusMock(true, true, true, certificatePath), new AuthManagerMock
+        appInstance.prepare (err) ->
+            assert not err?, "Prepared"
+            assert appInstance.app, "Express app is available"
+            server = appInstance.app
+            done()
+    describe "Login", ->
+        it "GET /", (done) ->
+            supertest(server)
+            .get '/' 
+            .expect 200
+            .expect 'Content-Type', /html/
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                done()
+        it "Redirect GET /", (done) ->
+            supertest(server)
+            .get '/redirect' 
+            .expect 302
+            .expect 'Location', "/"
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                done()
+        it "GET /main.js", (done) ->
+            supertest(server)
+            .get '/main.js' 
+            .expect 200
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                done()
+        it "POST /authenticate failed", (done) ->
+            supertest(server)
+            .post '/authenticate'
+            .send {password: 'INVALID'}
+            .expect 401
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                done()
+        it "POST /authenticate success", (done) ->
+            supertest(server)
+            .post '/authenticate'
+            .send {password: 'pass'}
+            .expect 200
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                assert res.body.token?
+                token = res.body.token
+                done()
+        it "GET /api/plugins", (done) ->
+            supertest(server)
+            .get '/api/plugins' 
+            .set 'Authorization', "Bearer #{token}"
+            .expect 200
+            .expect 'Content-Type', /json/
+            .end (err, res) ->
+                assert not err?, "Request succesful"
+                assert.deepEqual res.body, [{id: "test"}]
                 done()

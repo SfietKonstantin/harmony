@@ -14,27 +14,31 @@ class NullDBusInterfaceError extends Error
     constructor: ->
         super "DBus interface is null"
         @name = "NullDBusInterfaceError"
+        Error.captureStackTrace @, @
 
 class NodeRegistrationError extends Error
     constructor: ->
         super "Failed to register Node"
         @name = "NodeRegistrationError"
+        Error.captureStackTrace @, @
 
 class CertificatePathError extends Error
     constructor: ->
         super "Failed to get certificate path"
         @name = "CertificatePathError"
+        Error.captureStackTrace @, @
 
 class CertificatesError extends Error
     constructor: ->
         super "Failed to open certificates"
         @name = "CertificatesError"
+        Error.captureStackTrace @, @
 
 class PluginsError extends Error
     constructor: ->
         super "Failed to get plugins"
         @name = "PluginsError"
-
+        Error.captureStackTrace @, @
 
 class App
     app = null
@@ -42,6 +46,7 @@ class App
     authManager = null
     plugins = []
     enabledPlugins = []
+    options = {}
 
     constructor: (dbusInterface, authManager) ->
         @app = express()
@@ -57,7 +62,7 @@ class App
         @app.use bodyParser.json({type: 'application/vnd.api+json'})
         @app.use methodOverride()
         return
-    start: (done) ->
+    prepare: (done) ->
         if not @dbusInterface?
             done new NullDBusInterfaceError
             return
@@ -100,16 +105,15 @@ class App
         ], (err, results) =>
             if err?
                 done(err)
-                return
             else
-                options = results[1]
-                @app.plugins = results[2]
-                @app.enabledPlugins = []
+                @options = results[1]
+                @plugins = results[2]
+                @enabledPlugins = []
 
                 # Get enabled plugins
-                for plugin in @app.plugins
+                for plugin in @plugins
                     if fs.existsSync "#{__dirname}/../public/modules/#{plugin.id}/#{plugin.id}.js"
-                        @app.enabledPlugins.push plugin
+                        @enabledPlugins.push plugin
                     else
                         console.log "Plugin #{plugin.id} will not be enabled"
 
@@ -118,11 +122,11 @@ class App
                 # Routes
                 @app.use '/api', expressJwt({secret: @authManager.secret})
                 @app.get '/', (req, res) =>
-                    res.render "#{__dirname}/../views/index", { "plugins": @app.enabledPlugins }
+                    res.render "#{__dirname}/../views/index", { "plugins": @enabledPlugins }
                 @app.get '/main.js', (req, res) =>
-                    res.render "#{__dirname}/../views/main", { "plugins": @app.enabledPlugins }
+                    res.render "#{__dirname}/../views/main", { "plugins": @enabledPlugins }
                 @app.get '/api/plugins', (req, res) =>
-                    res.json @app.plugins
+                    res.json @enabledPlugins
                 @app.get '*', routes.redirectToIndex
                 @app.post '/authenticate', (req, res) =>
                     authCode = req.body["password"]
@@ -136,11 +140,18 @@ class App
                             return
                         return
                     return
-
+                done()
+            return
+        return
+    start: (done) ->
+        @prepare (error) =>
+            if error?
+                done(error)
+            else
                 # Server
-                server = https.createServer(options, @app).listen @app.get('port'), =>
-                    console.log("Server started on port #{@app.get('port')}")
-                    done()
-                    return
-                return
+                server = https.createServer(@options, @app).listen @app.get('port'), =>
+                console.log("Server started on port #{@app.get('port')}")
+                done()
+            return
+        return
 module.exports = App

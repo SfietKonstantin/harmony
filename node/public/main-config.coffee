@@ -28,7 +28,7 @@ app.factory 'authInterceptor', ($rootScope, LoginManager) ->
         request: (config) ->
             config.headers = config.headers || {}
             if LoginManager.isLoggedIn()
-                config.headers.Authorization = 'Bearer ' + LoginManager.token
+                config.headers.Authorization = "Bearer #{LoginManager.token}"
             return config
     }
 app.config ($httpProvider) ->
