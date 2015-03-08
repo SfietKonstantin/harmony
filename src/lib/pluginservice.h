@@ -41,7 +41,8 @@ class HarmonyPlugin
 {
 public:
     explicit HarmonyPlugin();
-    explicit HarmonyPlugin(const QString &id, const QString &name, const QString &description);
+    explicit HarmonyPlugin(const QString &id, const QString &name, const QString &description,
+                           const QList<HarmonyEndpoint> &endpoints = QList<HarmonyEndpoint>());
     HarmonyPlugin(const HarmonyPlugin &other);
     HarmonyPlugin & operator=(const HarmonyPlugin &other);
     virtual ~HarmonyPlugin();
@@ -53,6 +54,8 @@ public:
     void setName(const QString &name);
     QString description() const;
     void setDescription(const QString &description);
+    QList<HarmonyEndpoint> endpoints() const;
+    void setEndpoints(const QList<HarmonyEndpoint> &endpoints);
 private:
     QSharedDataPointer<HarmonyPluginPrivate> d_ptr;
 };

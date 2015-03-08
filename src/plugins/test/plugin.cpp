@@ -66,11 +66,29 @@ public:
         return endpoints;
     }
 
-    HarmonyRequestResult request(const QString &method, const QJsonDocument &request)
+    HarmonyRequestResult request(const HarmonyEndpoint &endpoint,
+                                 const QJsonDocument &params, const QJsonDocument &body)
     {
         QJsonObject returned;
-        returned.insert("method", method);
-        returned.insert("request", request.object());
+        QString type;
+        switch (endpoint.type()) {
+        case HarmonyEndpoint::Get:
+            type = "get";
+            break;
+        case HarmonyEndpoint::Post:
+            type = "post";
+            break;
+        case HarmonyEndpoint::Delete:
+            type = "delete";
+            break;
+        default:
+            break;
+        }
+
+        returned.insert("type", type);
+        returned.insert("name", endpoint.name());
+        returned.insert("params", params.object());
+        returned.insert("body", body.object());
 
         return HarmonyRequestResult(QJsonDocument(returned));
     }

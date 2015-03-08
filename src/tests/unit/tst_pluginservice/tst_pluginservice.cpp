@@ -38,6 +38,7 @@
 #include <dbusintrospect.h>
 #include "testadaptor.h"
 #include "testproxy.h"
+#include "testpluginproxy.h"
 
 Q_IMPORT_PLUGIN(HarmonyTestPlugin)
 
@@ -70,6 +71,7 @@ private Q_SLOTS:
     void testHarmonyPlugin();
     void testHarmonyPluginDBus();
     void testPluginService();
+    void testDBusPlugin();
 };
 
 void TstPluginService::testDBusRegister()
@@ -84,6 +86,7 @@ void TstPluginService::testDBusRegister()
         QVERIFY(!first.isNull());
 
         QVERIFY(DBusIntrospect("org.sfietkonstantin.Harmony", "/pluginservice").isValid());
+        QVERIFY(DBusIntrospect("org.sfietkonstantin.Harmony", "/plugin/test").isValid());
 
         // Calling create a second time should fail, as it is already
         // registered to DBus
@@ -91,6 +94,7 @@ void TstPluginService::testDBusRegister()
         QVERIFY(second.isNull());
     }
     QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/pluginservice").isValid());
+    QVERIFY(!DBusIntrospect("org.sfietkonstantin.Harmony", "/plugin/test").isValid());
 }
 
 void TstPluginService::testHarmonyPlugin()
@@ -100,30 +104,44 @@ void TstPluginService::testHarmonyPlugin()
     QVERIFY(plugin1.id().isEmpty());
     QVERIFY(plugin1.name().isEmpty());
     QVERIFY(plugin1.description().isEmpty());
+    QVERIFY(plugin1.endpoints().isEmpty());
 
     plugin1.setId("test_id");
     QVERIFY(plugin1.isNull());
     QCOMPARE(plugin1.id(), QString("test_id"));
     QVERIFY(plugin1.name().isEmpty());
     QVERIFY(plugin1.description().isEmpty());
+    QVERIFY(plugin1.endpoints().isEmpty());
 
     plugin1.setName("test_name");
     QVERIFY(plugin1.isNull());
     QCOMPARE(plugin1.id(), QString("test_id"));
     QCOMPARE(plugin1.name(), QString("test_name"));
     QVERIFY(plugin1.description().isEmpty());
+    QVERIFY(plugin1.endpoints().isEmpty());
 
     plugin1.setDescription("test_description");
     QVERIFY(!plugin1.isNull());
     QCOMPARE(plugin1.id(), QString("test_id"));
     QCOMPARE(plugin1.name(), QString("test_name"));
     QCOMPARE(plugin1.description(), QString("test_description"));
+    QVERIFY(plugin1.endpoints().isEmpty());
+
+    QList<HarmonyEndpoint> endpoints;
+    endpoints.append(HarmonyEndpoint(HarmonyEndpoint::Get, "test"));
+    plugin1.setEndpoints(endpoints);
+    QVERIFY(!plugin1.isNull());
+    QCOMPARE(plugin1.id(), QString("test_id"));
+    QCOMPARE(plugin1.name(), QString("test_name"));
+    QCOMPARE(plugin1.description(), QString("test_description"));
+    QCOMPARE(plugin1.endpoints(), endpoints);
 
     HarmonyPlugin plugin2 (plugin1);
     QCOMPARE(plugin2.isNull(), plugin1.isNull());
     QCOMPARE(plugin2.id(), plugin1.id());
     QCOMPARE(plugin2.name(), plugin1.name());
     QCOMPARE(plugin2.description(), plugin1.description());
+    QCOMPARE(plugin2.endpoints(), plugin1.endpoints());
     QVERIFY(plugin2 == plugin1);
 
     HarmonyPlugin plugin3;
@@ -132,12 +150,16 @@ void TstPluginService::testHarmonyPlugin()
     QCOMPARE(plugin3.id(), plugin1.id());
     QCOMPARE(plugin3.name(), plugin1.name());
     QCOMPARE(plugin3.description(), plugin1.description());
+    QCOMPARE(plugin3.endpoints(), plugin1.endpoints());
 
-    HarmonyPlugin plugin4 ("test_id2", "test_name2", "test_description2");
+    QList<HarmonyEndpoint> endpoints2;
+    endpoints2.append(HarmonyEndpoint(HarmonyEndpoint::Post, "test2"));
+    HarmonyPlugin plugin4 ("test_id2", "test_name2", "test_description2", endpoints2);
     QVERIFY(!plugin4.isNull());
     QCOMPARE(plugin4.id(), QString("test_id2"));
     QCOMPARE(plugin4.name(), QString("test_name2"));
     QCOMPARE(plugin4.description(), QString("test_description2"));
+    QCOMPARE(plugin4.endpoints(), endpoints2);
 
     HarmonyPlugin plugin5 (plugin1);
     plugin5.setName("test_name2");
@@ -145,6 +167,7 @@ void TstPluginService::testHarmonyPlugin()
     QCOMPARE(plugin5.id(), QString("test_id"));
     QCOMPARE(plugin5.name(), QString("test_name2"));
     QCOMPARE(plugin5.description(), QString("test_description"));
+    QCOMPARE(plugin5.endpoints(), endpoints);
     QVERIFY(!(plugin5 == plugin1));
 }
 
@@ -154,7 +177,9 @@ void TstPluginService::testHarmonyPluginDBus()
     DBusTestObject dbusTestObject;
     QVERIFY(QDBusConnection::sessionBus().registerObject("/test", &dbusTestObject));
 
-    HarmonyPlugin endpoint ("test_id", "test_name", "test_description");
+    QList<HarmonyEndpoint> endpoints;
+    endpoints.append(HarmonyEndpoint(HarmonyEndpoint::Get, "test"));
+    HarmonyPlugin endpoint ("test_id", "test_name", "test_description", endpoints);
     TestProxy proxy ("org.sfietkonstantin.Harmony", "/test", QDBusConnection::sessionBus());
 
     HarmonyPlugin result = proxy.TestPlugin(endpoint);
@@ -171,8 +196,55 @@ void TstPluginService::testPluginService()
     QList<HarmonyPlugin> plugins = pluginService->plugins();
     QCOMPARE(plugins.count(), 1);
     const HarmonyPlugin &plugin = plugins.first();
-    HarmonyPlugin expectedPlugin ("test", "Harmony test plugin", "The Harmony test plugin.");
+
+    QList<HarmonyEndpoint> expectedEndpoints;
+    HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
+    HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
+    HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
+    expectedEndpoints.append(testGet);
+    expectedEndpoints.append(testPost);
+    expectedEndpoints.append(testDelete);
+    HarmonyPlugin expectedPlugin ("test", "Test", "The Harmony test plugin.",
+                                  expectedEndpoints);
     QCOMPARE(plugin, expectedPlugin);
+}
+
+void TstPluginService::testDBusPlugin()
+{
+    PluginManager::Ptr pluginManager = PluginManager::create();
+    PluginService::Ptr pluginService = PluginService::create(pluginManager);
+    Q_UNUSED(pluginService);
+
+    TestPluginProxy proxy ("org.sfietkonstantin.Harmony", "/plugin/test", QDBusConnection::sessionBus());
+
+    QJsonObject params;
+    params.insert("text", "Some text");
+    params.insert("double", 1234.5678);
+    params.insert("bool", true);
+
+    QJsonObject body;
+    body.insert("text", "Some other text");
+    body.insert("double", 1.2345);
+    body.insert("bool", false);
+
+    HarmonyRequestResult result = proxy.Request(HarmonyEndpoint(HarmonyEndpoint::Get, "test_get"),
+                                                QJsonDocument(params).toJson(QJsonDocument::Compact),
+                                                QJsonDocument(body).toJson(QJsonDocument::Compact));
+    QCOMPARE(result.type(), HarmonyRequestResult::Json);
+    QCOMPARE(result.status(), 200);
+
+    QJsonDocument resultValue = result.valueJson();
+    QVERIFY(resultValue.isObject());
+
+    QJsonObject resultObject = resultValue.object();
+    QVERIFY(resultObject.contains("type"));
+    QCOMPARE(resultObject.value("type").toString(), QString("get"));
+    QVERIFY(resultObject.contains("name"));
+    QCOMPARE(resultObject.value("name").toString(), QString("test_get"));
+    QVERIFY(resultObject.contains("params"));
+    QCOMPARE(resultObject.value("params").toObject(), params);
+    QVERIFY(resultObject.contains("body"));
+    QCOMPARE(resultObject.value("body").toObject(), body);
 }
 
 QTEST_MAIN(TstPluginService)

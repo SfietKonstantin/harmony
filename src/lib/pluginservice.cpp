@@ -31,9 +31,11 @@
 
 #include "pluginservice.h"
 #include "pluginserviceadaptor.h"
+#include "pluginadaptor.h"
 #include <QtCore/QDebug>
 
 static const char *PATH = "/pluginservice";
+static const char *PLUGIN_PATH = "/plugin/%1";
 
 class HarmonyPluginPrivate: public QSharedData
 {
@@ -44,6 +46,7 @@ public:
     QString id;
     QString name;
     QString description;
+    QList<HarmonyEndpoint> endpoints;
 };
 
 HarmonyPluginPrivate::HarmonyPluginPrivate()
@@ -53,6 +56,7 @@ HarmonyPluginPrivate::HarmonyPluginPrivate()
 
 HarmonyPluginPrivate::HarmonyPluginPrivate(const HarmonyPluginPrivate &other)
     : QSharedData(other), id(other.id), name(other.name), description(other.description)
+    , endpoints(other.endpoints)
 {
 }
 
@@ -65,12 +69,14 @@ HarmonyPlugin::HarmonyPlugin()
 {
 }
 
-HarmonyPlugin::HarmonyPlugin(const QString &id, const QString &name, const QString &description)
+HarmonyPlugin::HarmonyPlugin(const QString &id, const QString &name, const QString &description,
+                             const QList<HarmonyEndpoint> &endpoints)
     : d_ptr(new HarmonyPluginPrivate())
 {
     d_ptr->id = id;
     d_ptr->name = name;
     d_ptr->description = description;
+    d_ptr->endpoints = endpoints;
 }
 
 HarmonyPlugin::HarmonyPlugin(const HarmonyPlugin &other)
@@ -92,7 +98,8 @@ bool HarmonyPlugin::operator==(const HarmonyPlugin &other) const
 {
     return (d_ptr->id == other.d_ptr->id)
             && (d_ptr->name == other.d_ptr->name)
-            && (d_ptr->description == other.d_ptr->description);
+            && (d_ptr->description == other.d_ptr->description)
+            && (d_ptr->endpoints == other.d_ptr->endpoints);
 }
 
 bool HarmonyPlugin::isNull() const
@@ -130,12 +137,27 @@ void HarmonyPlugin::setDescription(const QString &description)
     d_ptr->description = description;
 }
 
+QList<HarmonyEndpoint> HarmonyPlugin::endpoints() const
+{
+    return d_ptr->endpoints;
+}
+
+void HarmonyPlugin::setEndpoints(const QList<HarmonyEndpoint> &endpoints)
+{
+    d_ptr->endpoints = endpoints;
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyPlugin &harmonyPlugin)
 {
     argument.beginStructure();
     argument << harmonyPlugin.id();
     argument << harmonyPlugin.name();
     argument << harmonyPlugin.description();
+    argument.beginArray(qMetaTypeId<HarmonyEndpoint>());
+    for (const HarmonyEndpoint &endpoint : harmonyPlugin.endpoints()) {
+        argument << endpoint;
+    }
+    argument.endArray();
     argument.endStructure();
     return argument;
 }
@@ -152,6 +174,15 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyPlugin &ha
     QString description;
     argument >> description;
     harmonyPlugin.setDescription(description);
+    argument.beginArray();
+    QList<HarmonyEndpoint> endpoints;
+    while (!argument.atEnd()) {
+        HarmonyEndpoint endpoint;
+        argument >> endpoint;
+        endpoints.append(endpoint);
+    }
+    harmonyPlugin.setEndpoints(endpoints);
+    argument.endArray();
     argument.endStructure();
     return argument;
 }
@@ -162,6 +193,7 @@ public:
     explicit PluginServicePrivate(PluginService *q);
     bool registered;
     QList<HarmonyPlugin> plugins;
+    QList<PluginAdaptor *> adaptors;
 protected:
     PluginService * const q_ptr;
 private:
@@ -190,6 +222,16 @@ PluginService::~PluginService()
         qDebug() << "Unregistered DBus object" << PATH;
 #endif
     }
+
+    // Unregister plugins
+    for (const HarmonyPlugin &plugin : d->plugins) {
+        QString pluginObject = QString(PLUGIN_PATH).arg(plugin.id());
+        QDBusConnection::sessionBus().unregisterObject(pluginObject);
+#ifdef HARMONY_DEBUG
+        qDebug() << "Unregistered DBus object" << pluginObject;
+#endif
+    }
+    qDeleteAll(d->adaptors);
 }
 
 QList<HarmonyPlugin> PluginService::plugins() const
@@ -202,7 +244,8 @@ PluginService::Ptr PluginService::create(PluginManager::Ptr pluginManager)
 {
     Ptr instance = Ptr(new PluginService());
     for (HarmonyExtension *plugin : pluginManager->plugins()) {
-        HarmonyPlugin pluginDescription (plugin->id(), plugin->name(), plugin->description());
+        HarmonyPlugin pluginDescription (plugin->id(), plugin->name(), plugin->description(),
+                                         plugin->endpoints());
         instance->d_func()->plugins.append(pluginDescription);
     }
     new PluginServiceAdaptor(instance.data());
@@ -212,7 +255,16 @@ PluginService::Ptr PluginService::create(PluginManager::Ptr pluginManager)
         return Ptr();
     }
 
+    // Register plugins to DBus
+    for (HarmonyExtension *plugin : pluginManager->plugins()) {
+        PluginAdaptor *adaptor = new PluginAdaptor(plugin);
+        instance->d_func()->adaptors.append(adaptor);
+        QString pluginPath = QString(PLUGIN_PATH).arg(plugin->id());
+        if (!QDBusConnection::sessionBus().registerObject(pluginPath, plugin)) {
+            qWarning() << "Failed to register DBus object" << pluginPath;
+        }
+    }
+
     instance->d_func()->registered = true;
     return instance;
 }
-

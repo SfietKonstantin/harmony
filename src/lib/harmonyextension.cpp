@@ -30,6 +30,8 @@
  */
 
 #include "harmonyextension.h"
+#include <QtCore/QDebug>
+#include <QtCore/QJsonDocument>
 
 class HarmonyEndpointPrivate: public QSharedData
 {
@@ -269,6 +271,11 @@ QString HarmonyRequestResult::value() const
     return d_ptr->value;
 }
 
+QJsonDocument HarmonyRequestResult::valueJson() const
+{
+    return QJsonDocument::fromJson(d_ptr->value.toLocal8Bit());
+}
+
 void HarmonyRequestResult::setValue(const QString &value)
 {
     d_ptr->value = value;
@@ -334,17 +341,33 @@ HarmonyExtension::~HarmonyExtension()
 {
 }
 
-HarmonyRequestResult HarmonyExtension::requestGet(const QString &method, const QJsonDocument &json)
+HarmonyRequestResult HarmonyExtension::Request(const HarmonyEndpoint &endpoint, const QString &params,
+                                               const QString &body)
 {
-    return request(method, json);
-}
+    QJsonParseError error;
+    QJsonDocument paramsDocument;
+    if (!params.isEmpty()) {
+        paramsDocument = QJsonDocument::fromJson(params.toLocal8Bit(), &error);
+        if (error.error != QJsonParseError::NoError) {
+    #ifdef HARMONY_DEBUG
+            qWarning() << "When requesting" << endpoint.type() << endpoint.name()
+                       << "failed to parse parameters:" << error.errorString();
+    #endif
+            return HarmonyRequestResult();
+        }
+    }
 
-HarmonyRequestResult HarmonyExtension::requestPost(const QString &method, const QJsonDocument &json)
-{
-    return request(method, json);
-}
+    QJsonDocument bodyDocument;
+    if (!body.isEmpty()) {
+        bodyDocument = QJsonDocument::fromJson(body.toLocal8Bit(), &error);
+        if (error.error != QJsonParseError::NoError) {
+    #ifdef HARMONY_DEBUG
+            qWarning() << "When requesting" << endpoint.type() << endpoint.name()
+                       << "failed to parse body:" << error.errorString();
+    #endif
+            return HarmonyRequestResult();
+        }
+    }
 
-HarmonyRequestResult HarmonyExtension::requestDelete(const QString &method, const QJsonDocument &json)
-{
-    return request(method, json);
+    return request(endpoint, paramsDocument, bodyDocument);
 }

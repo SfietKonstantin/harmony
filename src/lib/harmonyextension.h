@@ -92,6 +92,7 @@ public:
     void setType(Type type);
     QString value() const;
     void setValue(const QString &value);
+    QJsonDocument valueJson() const;
 private:
     QSharedDataPointer<HarmonyRequestResultPrivate> d_ptr;
 };
@@ -108,7 +109,10 @@ public:
     virtual QString name() const = 0;
     virtual QString description() const = 0;
     virtual QList<HarmonyEndpoint> endpoints() const = 0;
-    virtual HarmonyRequestResult request(const QString &method, const QJsonDocument &json) = 0;
+protected:
+    virtual HarmonyRequestResult request(const HarmonyEndpoint &endpoint,
+                                         const QJsonDocument &params,
+                                         const QJsonDocument &body) = 0;
 };
 
 Q_DECLARE_INTERFACE(IHarmonyExtension, "org.SfietKonstantin.harmony.IHarmonyExtension/1.0")
@@ -120,9 +124,9 @@ class HarmonyExtension : public QObject, public IHarmonyExtension
 public:
     explicit HarmonyExtension(QObject *parent = 0);
     virtual ~HarmonyExtension();
-    virtual HarmonyRequestResult requestGet(const QString &method, const QJsonDocument &json);
-    virtual HarmonyRequestResult requestPost(const QString &method, const QJsonDocument &json);
-    virtual HarmonyRequestResult requestDelete(const QString &method, const QJsonDocument &json);
+private:
+    Q_INVOKABLE HarmonyRequestResult Request(const HarmonyEndpoint &endpoint, const QString &params,
+                                             const QString &body);
 };
 
 #endif // HARMONYEXTENSION_H

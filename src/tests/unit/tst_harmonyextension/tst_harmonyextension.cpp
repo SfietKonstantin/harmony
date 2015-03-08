@@ -238,7 +238,7 @@ void TstHarmonyExtension::testPluginManager()
 
     const HarmonyExtension *testPlugin = plugins.first();
     QCOMPARE(testPlugin->id(), QString("test"));
-    QCOMPARE(testPlugin->name(), QString("Harmony test plugin"));
+    QCOMPARE(testPlugin->name(), QString("Test"));
     QCOMPARE(testPlugin->description(), QString("The Harmony test plugin."));
 
     const QList<HarmonyEndpoint> &endpoints = testPlugin->endpoints();

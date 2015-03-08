@@ -7,7 +7,6 @@ https = require 'https'
 fs = require 'fs'
 async = require 'async'
 jwt = require 'jsonwebtoken'
-expressJwt = require 'express-jwt'
 routes = require './routes'
 
 class NullDBusInterfaceError extends Error
@@ -120,26 +119,7 @@ class App
                 @authManager.setCertificatePath options.certificatePath
 
                 # Routes
-                @app.use '/api', expressJwt({secret: @authManager.secret})
-                @app.get '/', (req, res) =>
-                    res.render "#{__dirname}/../views/index", { "plugins": @enabledPlugins }
-                @app.get '/main.js', (req, res) =>
-                    res.render "#{__dirname}/../views/main", { "plugins": @enabledPlugins }
-                @app.get '/api/plugins', (req, res) =>
-                    res.json @enabledPlugins
-                @app.get '*', routes.redirectToIndex
-                @app.post '/authenticate', (req, res) =>
-                    authCode = req.body["password"]
-                    token = @authManager.generateToken authCode
-                    @dbusInterface.identificationserviceRegisterClient token, authCode, (ok) ->
-                        if ok
-                            res.json {'token': token}
-                            return
-                        else
-                            res.status(401).send('Wrong authentification code')
-                            return
-                        return
-                    return
+                routes.setup @app, @authManager, @dbusInterface, @enabledPlugins
                 done()
             return
         return

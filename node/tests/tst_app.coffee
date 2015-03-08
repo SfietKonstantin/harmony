@@ -3,6 +3,34 @@ app = require '../lib/app'
 authManager = require '../lib/authmanager'
 supertest = require 'supertest'
 
+testPlugin = {
+    id: "test"
+    name: "Test"
+    description: ""
+    endpoints: [
+        {
+            type: "get"
+            name: "test_get"
+        },
+        {
+            type: "post"
+            name: "test_post"
+        },
+        {
+            type: "delete"
+            name: "test_delete"
+        }
+    ]
+}
+
+invalidPlugin = {
+    id: "invalid"
+    name: "Invalid"
+    description: ""
+    endpoints: []
+}
+
+
 class DBusMock
     registerNodeOk = false
     getCertificatePathOk = false
@@ -30,7 +58,7 @@ class DBusMock
         if not @getPluginsOk
             throw new Error("pluginserviceGetPlugins error")
         else
-            callback [{id: "test"}, {id: "inexisting"}]
+            callback [testPlugin, invalidPlugin]
     identificationserviceRegisterClient: (token, authCode, callback) ->
         if authCode == "pass"
             callback true
@@ -95,8 +123,8 @@ describe "App", ->
             appInstance.start (err) ->
                 assert not err?, "Started"
                 assert.equal authManager.certificatePath, certificatePath
-                assert.deepEqual appInstance.plugins, [{id: "test"}, {id: "inexisting"}]
-                assert.deepEqual appInstance.enabledPlugins, [{id: "test"}]
+                assert.deepEqual appInstance.plugins, [testPlugin, invalidPlugin]
+                assert.deepEqual appInstance.enabledPlugins, [testPlugin]
                 done()
 
 describe "API", ->
@@ -160,5 +188,5 @@ describe "API", ->
             .expect 'Content-Type', /json/
             .end (err, res) ->
                 assert not err?, "Request succesful"
-                assert.deepEqual res.body, [{id: "test"}]
+                assert.deepEqual res.body, [testPlugin]
                 done()
