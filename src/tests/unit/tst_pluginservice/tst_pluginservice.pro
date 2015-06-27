@@ -6,10 +6,10 @@ QT = core dbus testlib
 include(../../../config.pri)
 
 INCLUDEPATH += ../../lib \
-    ../../../lib
+    ../../../lib/harmony
 LIBS += -L../../../plugins/test -lharmonytestplugin \
     -L../../lib -lharmonytest \
-    -L../../../lib -lharmony
+    -L../../../lib/harmony -lharmony
 
 HEADERS += testadaptor.h \
     testproxy.h \

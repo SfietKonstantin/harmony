@@ -29,38 +29,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef CERTIFICATEMANAGER_H
-#define CERTIFICATEMANAGER_H
+#ifndef JSONWEBTOKEN_H
+#define JSONWEBTOKEN_H
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
+#include <QtCore/QJsonObject>
 
-class CertificateManagerPrivate;
-class CertificateManager: public QObject
+namespace harmony
 {
-    Q_OBJECT
+
+/**
+ * @brief A simple implementation of Auth0's jwt
+ *
+ * JSON Web Token (JWT) is a compact URL-safe means of
+ * representing claims to be transferred between two parties.
+ * The claims in a JWT are encoded as a JSON object that is
+ * digitally signed using JSON Web Signature (JWS).
+ *
+ * For more information, visit http://jwt.io.
+ *
+ * This class only supports HMAC-SHA256 based JSON web tokens.
+ */
+class JsonWebToken
+{
 public:
-    typedef QSharedPointer<CertificateManager> Ptr;
-    virtual ~CertificateManager();
-    QString certificatePath() const;
-    bool hasCertificates() const;
-    bool createCertificates() const;
-    bool removeCertificates() const;
-protected:
-    explicit CertificateManager();
-    void setCertificatePath(const QString &certificatePath);
-    QScopedPointer<CertificateManagerPrivate> d_ptr;
+    explicit JsonWebToken();
+    explicit JsonWebToken(const QJsonObject &payload);
+    bool operator==(const JsonWebToken &other) const;
+    bool isNull() const;
+    QJsonObject payload() const;
+    void setPayload(const QJsonObject &payload);
+    QByteArray toJwt(const QByteArray &key) const;
+    static JsonWebToken fromJwt(const QByteArray &jwt, const QByteArray &key);
 private:
-    Q_DECLARE_PRIVATE(CertificateManager)
+    QJsonObject m_payload {};
 };
 
-class HarmonyCertificateManager : public CertificateManager
-{
-    Q_OBJECT
-public:
-    static Ptr create();
-protected:
-    explicit HarmonyCertificateManager();
-};
+}
 
-#endif // CERTIFICATEMANAGER_H
+#endif // JSONWEBTOKEN_H

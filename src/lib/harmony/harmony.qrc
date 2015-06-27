@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ssl/harmony-ca.crt</file>
+        <file>ssl/harmony-key.pub</file>
+        <file>ssl/harmony.crt</file>
+        <file>ssl/harmony.key</file>
+        <file>ssl/harmony.pem</file>
+    </qresource>
+</RCC>

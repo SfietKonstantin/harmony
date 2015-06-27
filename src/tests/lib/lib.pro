@@ -7,8 +7,8 @@ CONFIG += staticlib
 
 include(../../config.pri)
 
-INCLUDEPATH += ../../lib
-LIBS += -L../../lib -lharmony
+INCLUDEPATH += ../../lib/harmony
+LIBS += -L../../lib/harmony -lharmony
 
 HEADERS += \
     testserviceprovider.h \

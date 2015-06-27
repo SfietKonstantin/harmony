@@ -29,37 +29,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef IDENTIFICATIONSERVICE_H
-#define IDENTIFICATIONSERVICE_H
+#ifndef ISERVER_H
+#define ISERVER_H
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-#include <QtCore/QStringList>
+#include <memory>
 
-class IdentificationServicePrivate;
-class IdentificationService : public QObject
+namespace harmony
 {
-    Q_OBJECT
-    Q_PROPERTY(QString password READ password NOTIFY passwordChanged)
+
+class IServer
+{
 public:
-    typedef QSharedPointer<IdentificationService> Ptr;
-    virtual ~IdentificationService();
-    QString password() const;
-    static Ptr create();
-    QStringList registeredClients() const;
-    bool registerClient(const QString &token, const QString &password);
-    bool unregisterClient(const QString &token);
-Q_SIGNALS:
-    void passwordChanged();
-    void PasswordChanged();
-protected:
-    QScopedPointer<IdentificationServicePrivate> d_ptr;
-private:
-    explicit IdentificationService();
-    Q_INVOKABLE QStringList RegisteredClients() const;
-    Q_INVOKABLE bool RegisterClient(const QString &token, const QString &password);
-    Q_INVOKABLE bool UnregisterClient(const QString &token);
-    Q_DECLARE_PRIVATE(IdentificationService)
+    using Ptr = std::unique_ptr<IServer>;
+    virtual ~IServer() {}
+    virtual int port() const = 0;
+    virtual bool start() = 0;
+    virtual void stop() = 0;
+    static Ptr create(int port);
 };
 
-#endif // IDENTIFICATIONSERVICE_H
+}
+
+#endif // ISERVER_H
+

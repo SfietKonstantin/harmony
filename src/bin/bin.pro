@@ -13,8 +13,8 @@ CONFIG += c++11
     RESOURCES += res.qrc
 }
 
-INCLUDEPATH += ../lib
-LIBS += -L../lib -lharmony
+INCLUDEPATH += ../lib/harmony
+LIBS += -L../lib/harmony -lharmony
 
 HEADERS += \
 

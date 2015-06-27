@@ -2,7 +2,7 @@ TEMPLATE = lib
 TARGET = harmonytestplugin
 QT = core
 
-INCLUDEPATH += ../../lib
+INCLUDEPATH += ../../lib/harmony
 
 CONFIG += plugin static
 

@@ -1,6 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS = lib bin plugins tests
+SUBDIRS = lib \
+    tests
 
-bin.depends = lib
-plugins.depends = lib
-tests.depends = lib plugins
+tests.depends = lib

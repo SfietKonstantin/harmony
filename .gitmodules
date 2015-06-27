@@ -1,0 +1,3 @@
+[submodule "src/3rdparty/civetweb"]
+	path = src/3rdparty/civetweb
+	url = https://github.com/bel2125/civetweb.git
