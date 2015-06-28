@@ -48,19 +48,22 @@ namespace harmony
 class AuthentificationService: public IAuthentificationService
 {
 public:
-    explicit AuthentificationService(PasswordChangedCallback_t passwordChangedCallback);
+    explicit AuthentificationService(const QByteArray &key, PasswordChangedCallback_t passwordChangedCallback);
     std::string password() const override;
     JsonWebToken authenticate(const std::string &password) override;
+    QByteArray hashJwt(const JsonWebToken &token) override;
 private:
     void decrementPasswordAttempts();
     void generatePassword(bool init = false);
     int m_passwordAttempts {0};
     std::string m_password {};
+    QByteArray m_key {};
     PasswordChangedCallback_t m_passwordChangedCallback {};
 };
 
-AuthentificationService::AuthentificationService(PasswordChangedCallback_t passwordChangedCallback)
-    : m_passwordChangedCallback(std::move(passwordChangedCallback))
+AuthentificationService::AuthentificationService(const QByteArray &key,
+                                                 PasswordChangedCallback_t passwordChangedCallback)
+    : m_key{key}, m_passwordChangedCallback(std::move(passwordChangedCallback))
 {
     generatePassword(true);
 }
@@ -77,6 +80,8 @@ JsonWebToken AuthentificationService::authenticate(const std::string &password)
         return JsonWebToken();
     }
 
+    generatePassword();
+
     chrono::time_point<std::chrono::system_clock> now = chrono::system_clock::now();
     int iat = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
 
@@ -86,6 +91,11 @@ JsonWebToken AuthentificationService::authenticate(const std::string &password)
     payload.insert("exp", iat + VALIDITY_DURATION);
     payload.insert("jti", jti);
     return JsonWebToken(payload);
+}
+
+QByteArray AuthentificationService::hashJwt(const JsonWebToken &token)
+{
+    return token.toJwt(m_key);
 }
 
 void AuthentificationService::decrementPasswordAttempts()
@@ -130,9 +140,10 @@ void AuthentificationService::generatePassword(bool init)
 #endif
 }
 
-IAuthentificationService::Ptr IAuthentificationService::create(PasswordChangedCallback_t passwordChangedCallback)
+IAuthentificationService::Ptr IAuthentificationService::create(const QByteArray &key,
+                                                               PasswordChangedCallback_t passwordChangedCallback)
 {
-    return Ptr(new AuthentificationService(passwordChangedCallback));
+    return Ptr(new AuthentificationService(key, passwordChangedCallback));
 }
 
 }

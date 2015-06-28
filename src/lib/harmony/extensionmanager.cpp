@@ -29,27 +29,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef PLUGINMANAGER_H
-#define PLUGINMANAGER_H
+#include "iextensionmanager.h"
+#include <QtCore/QPluginLoader>
+#include <QtCore/QCoreApplication>
 
-#include <QtCore/QObject>
-#include <QtCore/QSharedPointer>
-#include "harmonyextension.h"
-
-class PluginManagerPrivate;
-class PluginManager : public QObject
+namespace harmony
 {
-    Q_OBJECT
+
+class ExtensionManager: public IExtensionManager
+{
 public:
-    typedef QSharedPointer<PluginManager> Ptr;
-    virtual ~PluginManager();
-    static Ptr create();
-    QList<HarmonyExtension *> plugins() const;
-protected:
-    QScopedPointer<PluginManagerPrivate> d_ptr;
+    explicit ExtensionManager();
+    ~ExtensionManager();
+    std::vector<Extension *> extensions() const;
 private:
-    explicit PluginManager();
-    Q_DECLARE_PRIVATE(PluginManager)
+    std::vector<Extension *> m_extensions {};
 };
 
-#endif // PLUGINMANAGER_H
+
+ExtensionManager::ExtensionManager()
+{
+    QList<QObject *> staticPlugins = QPluginLoader::staticInstances();
+    for (QObject *object : staticPlugins) {
+        Extension *extension = qobject_cast<Extension *>(object);
+        if (extension) {
+            m_extensions.push_back(extension);
+        }
+    }
+}
+
+ExtensionManager::~ExtensionManager()
+{
+    // Destroy plugins to workaround a Qt bug
+    for (Extension *extension : m_extensions) {
+        delete extension;
+    }
+}
+
+
+std::vector<Extension *> ExtensionManager::extensions() const
+{
+    return m_extensions;
+}
+
+IExtensionManager::Ptr IExtensionManager::create()
+{
+    return Ptr(new ExtensionManager());
+}
+
+}

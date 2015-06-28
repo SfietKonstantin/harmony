@@ -33,341 +33,85 @@
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
 
-class HarmonyEndpointPrivate: public QSharedData
+namespace harmony
 {
-public:
-    explicit HarmonyEndpointPrivate();
-    HarmonyEndpointPrivate(const HarmonyEndpointPrivate &other);
-    ~HarmonyEndpointPrivate();
-    HarmonyEndpoint::Type type;
-    QString name;
-};
 
-HarmonyEndpointPrivate::HarmonyEndpointPrivate()
-    : QSharedData(), type(HarmonyEndpoint::Invalid)
+Endpoint::Endpoint()
 {
 }
 
-HarmonyEndpointPrivate::HarmonyEndpointPrivate(const HarmonyEndpointPrivate &other)
-    : QSharedData(other), type(other.type), name(other.name)
+Endpoint::Endpoint(Type type, const std::string &name)
+    : m_type{type}, m_name{name}
 {
 }
 
-HarmonyEndpointPrivate::~HarmonyEndpointPrivate()
+bool Endpoint::operator==(const Endpoint &other) const
+{
+    return m_type == other.m_type && m_name == other.m_name;
+}
+
+bool Endpoint::isNull() const
+{
+    return m_type == Type::Invalid || m_name.empty();
+}
+
+Endpoint::Type Endpoint::type() const
+{
+    return m_type;
+}
+
+std::string Endpoint::name() const
+{
+    return m_name;
+}
+
+Reply::Reply()
 {
 }
 
-HarmonyEndpoint::HarmonyEndpoint()
-    : d_ptr(new HarmonyEndpointPrivate())
+Reply::Reply(const QJsonDocument &json)
+    : m_type{Type::Json}, m_value{json.toJson(QJsonDocument::Compact).toStdString()}
 {
 }
 
-HarmonyEndpoint::HarmonyEndpoint(Type type, const QString &name)
-    : d_ptr(new HarmonyEndpointPrivate())
-{
-    d_ptr->type = type;
-    d_ptr->name = name;
-}
-
-HarmonyEndpoint::HarmonyEndpoint(const HarmonyEndpoint &other)
-    : d_ptr(other.d_ptr)
+Reply::Reply(int status, const QJsonDocument &json)
+    : m_status{status}, m_type{Type::Json}, m_value{json.toJson(QJsonDocument::Compact).toStdString()}
 {
 }
 
-HarmonyEndpoint & HarmonyEndpoint::operator=(const HarmonyEndpoint &other)
+bool Reply::operator==(const Reply &other) const
 {
-    d_ptr = other.d_ptr;
-    return *this;
+    return m_status == other.m_status && m_type == other.m_type && m_value == other.m_value;
 }
 
-HarmonyEndpoint::~HarmonyEndpoint()
+bool Reply::isNull() const
 {
+    return m_type == Type::Invalid || m_value.empty();
 }
 
-bool HarmonyEndpoint::operator==(const HarmonyEndpoint &other) const
+int Reply::status() const
 {
-    return (d_ptr->type == other.d_ptr->type)
-            && (d_ptr->name == other.d_ptr->name);
+    return m_status;
 }
 
-bool HarmonyEndpoint::isNull() const
+Reply::Type Reply::type() const
 {
-    return (d_ptr->type == Invalid || d_ptr->name.isEmpty());
+    return m_type;
 }
 
-HarmonyEndpoint::Type HarmonyEndpoint::type() const
+std::string Reply::value() const
 {
-    return d_ptr->type;
+    return m_value;
 }
 
-void HarmonyEndpoint::setType(Type type)
+QJsonDocument Reply::valueJson() const
 {
-    d_ptr->type = type;
+    return QJsonDocument::fromJson(QByteArray::fromStdString(m_value));
 }
 
-QString HarmonyEndpoint::name() const
-{
-    return d_ptr->name;
-}
-
-void HarmonyEndpoint::setName(const QString &name)
-{
-    d_ptr->name = name;
-}
-
-static QString harmonyEndpointTypeToString(HarmonyEndpoint::Type type)
-{
-    switch (type) {
-    case HarmonyEndpoint::Get:
-        return "get";
-        break;
-    case HarmonyEndpoint::Post:
-        return "post";
-        break;
-    case HarmonyEndpoint::Delete:
-        return "delete";
-        break;
-    default:
-        return QString();
-    }
-}
-
-static HarmonyEndpoint::Type harmonyEndpointTypeFromString(const QString &type)
-{
-    if (type == "get") {
-        return HarmonyEndpoint::Get;
-    } else if (type == "post") {
-        return HarmonyEndpoint::Post;
-    } else if (type == "delete") {
-        return HarmonyEndpoint::Delete;
-    } else {
-        return HarmonyEndpoint::Invalid;
-    }
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyEndpoint &harmonyEndpoint)
-{
-    argument.beginStructure();
-    argument << harmonyEndpointTypeToString(harmonyEndpoint.type());
-    argument << harmonyEndpoint.name();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyEndpoint &harmonyEndpoint)
-{
-    argument.beginStructure();
-    QString type;
-    argument >> type;
-    harmonyEndpoint.setType(harmonyEndpointTypeFromString(type));
-    QString name;
-    argument >> name;
-    harmonyEndpoint.setName(name);
-    argument.endStructure();
-    return argument;
-}
-
-class HarmonyRequestResultPrivate: public QSharedData
-{
-public:
-    explicit HarmonyRequestResultPrivate();
-    HarmonyRequestResultPrivate(const HarmonyRequestResultPrivate &other);
-    ~HarmonyRequestResultPrivate();
-    int status;
-    HarmonyRequestResult::Type type;
-    QString value;
-};
-
-HarmonyRequestResultPrivate::HarmonyRequestResultPrivate()
-    : QSharedData(), status(200), type(HarmonyRequestResult::Invalid)
-{
-}
-
-HarmonyRequestResultPrivate::HarmonyRequestResultPrivate(const HarmonyRequestResultPrivate &other)
-    : QSharedData(other), status(other.status), type(other.type), value(other.value)
-{
-}
-
-HarmonyRequestResultPrivate::~HarmonyRequestResultPrivate()
-{
-}
-
-HarmonyRequestResult::HarmonyRequestResult()
-    : d_ptr(new HarmonyRequestResultPrivate())
-{
-}
-
-HarmonyRequestResult::HarmonyRequestResult(const QJsonDocument &json)
-    : d_ptr(new HarmonyRequestResultPrivate())
-{
-    d_ptr->type = Json;
-    d_ptr->value = QString(json.toJson(QJsonDocument::Compact));
-}
-
-HarmonyRequestResult::HarmonyRequestResult(const QString &file)
-    : d_ptr(new HarmonyRequestResultPrivate())
-{
-    d_ptr->type = File;
-    d_ptr->value = file;
-}
-
-HarmonyRequestResult::HarmonyRequestResult(int status, const QJsonDocument &json)
-    : d_ptr(new HarmonyRequestResultPrivate())
-{
-    d_ptr->status = status;
-    d_ptr->type = Json;
-    d_ptr->value = QString(json.toJson(QJsonDocument::Compact));
-}
-
-HarmonyRequestResult::HarmonyRequestResult(const HarmonyRequestResult &other)
-    : d_ptr(other.d_ptr)
-{
-}
-
-HarmonyRequestResult & HarmonyRequestResult::operator=(const HarmonyRequestResult &other)
-{
-    d_ptr = other.d_ptr;
-    return *this;
-}
-
-HarmonyRequestResult::~HarmonyRequestResult()
-{
-}
-
-bool HarmonyRequestResult::operator==(const HarmonyRequestResult &other) const
-{
-    return (d_ptr->status == other.d_ptr->status
-            && d_ptr->type == other.d_ptr->type)
-            && (d_ptr->value == other.d_ptr->value);
-}
-
-bool HarmonyRequestResult::isNull() const
-{
-    return (d_ptr->type == Invalid || d_ptr->value.isEmpty());
-}
-
-int HarmonyRequestResult::status() const
-{
-    return d_ptr->status;
-}
-
-void HarmonyRequestResult::setStatus(int status)
-{
-    d_ptr->status = status;
-}
-
-HarmonyRequestResult::Type HarmonyRequestResult::type() const
-{
-    return d_ptr->type;
-}
-
-void HarmonyRequestResult::setType(Type type)
-{
-    d_ptr->type = type;
-}
-
-QString HarmonyRequestResult::value() const
-{
-    return d_ptr->value;
-}
-
-QJsonDocument HarmonyRequestResult::valueJson() const
-{
-    return QJsonDocument::fromJson(d_ptr->value.toLocal8Bit());
-}
-
-void HarmonyRequestResult::setValue(const QString &value)
-{
-    d_ptr->value = value;
-}
-
-static QString harmonyRequestResultTypeToString(HarmonyRequestResult::Type type)
-{
-    switch (type) {
-    case HarmonyRequestResult::Json:
-        return "json";
-        break;
-    case HarmonyRequestResult::File:
-        return "file";
-        break;
-    default:
-        return QString();
-    }
-}
-
-static HarmonyRequestResult::Type harmonyRequestResultTypeFromString(const QString &type)
-{
-    if (type == "json") {
-        return HarmonyRequestResult::Json;
-    } else if (type == "file") {
-        return HarmonyRequestResult::File;
-    } else {
-        return HarmonyRequestResult::Invalid;
-    }
-}
-
-QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyRequestResult &harmonyRequestResult)
-{
-    argument.beginStructure();
-    argument << harmonyRequestResult.status();
-    argument << harmonyRequestResultTypeToString(harmonyRequestResult.type());
-    argument << harmonyRequestResult.value();
-    argument.endStructure();
-    return argument;
-}
-
-const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyRequestResult &harmonyRequestResult)
-{
-    argument.beginStructure();
-    int status = 0;
-    argument >> status;
-    harmonyRequestResult.setStatus(status);
-    QString type;
-    argument >> type;
-    harmonyRequestResult.setType(harmonyRequestResultTypeFromString(type));
-    QString value;
-    argument >> value;
-    harmonyRequestResult.setValue(value);
-    argument.endStructure();
-    return argument;
-}
-
-HarmonyExtension::HarmonyExtension(QObject *parent)
+Extension::Extension(QObject *parent)
     : QObject(parent)
 {
 }
 
-HarmonyExtension::~HarmonyExtension()
-{
-}
-
-HarmonyRequestResult HarmonyExtension::Request(const HarmonyEndpoint &endpoint, const QString &params,
-                                               const QString &body)
-{
-    QJsonParseError error;
-    QJsonDocument paramsDocument;
-    if (!params.isEmpty()) {
-        paramsDocument = QJsonDocument::fromJson(params.toLocal8Bit(), &error);
-        if (error.error != QJsonParseError::NoError) {
-    #ifdef HARMONY_DEBUG
-            qWarning() << "When requesting" << endpoint.type() << endpoint.name()
-                       << "failed to parse parameters:" << error.errorString();
-    #endif
-            return HarmonyRequestResult();
-        }
-    }
-
-    QJsonDocument bodyDocument;
-    if (!body.isEmpty()) {
-        bodyDocument = QJsonDocument::fromJson(body.toLocal8Bit(), &error);
-        if (error.error != QJsonParseError::NoError) {
-    #ifdef HARMONY_DEBUG
-            qWarning() << "When requesting" << endpoint.type() << endpoint.name()
-                       << "failed to parse body:" << error.errorString();
-    #endif
-            return HarmonyRequestResult();
-        }
-    }
-
-    return request(endpoint, paramsDocument, bodyDocument);
 }

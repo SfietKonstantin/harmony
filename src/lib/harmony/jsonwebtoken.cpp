@@ -66,11 +66,6 @@ QJsonObject JsonWebToken::payload() const
     return m_payload;
 }
 
-void JsonWebToken::setPayload(const QJsonObject &payload)
-{
-    m_payload = payload;
-}
-
 QByteArray JsonWebToken::toJwt(const QByteArray &key) const
 {
     QByteArray jwt {};

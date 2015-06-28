@@ -8,8 +8,6 @@ CONFIG += plugin static
 
 include(../../config.pri)
 
-HEADERS += \
-
 SOURCES = plugin.cpp
 
 

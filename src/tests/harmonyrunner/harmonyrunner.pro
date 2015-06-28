@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = harmonyrunner
 
-QT = core dbus
+QT = core
 
 include(../../config.pri)
 

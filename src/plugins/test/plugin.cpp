@@ -32,65 +32,69 @@
 #include <harmonyextension.h>
 #include <QtCore/QJsonObject>
 
-class HarmonyTestPlugin: public HarmonyExtension
+using namespace harmony;
+
+class HarmonyTestPlugin: public Extension
 {
     Q_OBJECT
 #ifndef SONAR_RUN
     Q_PLUGIN_METADATA(IID "org.SfietKonstantin.harmony.IHarmonyExtension")
 #endif
 public:
-    QString id() const Q_DECL_OVERRIDE
+    std::string id() const override
     {
         return "test";
     }
 
-    QString name() const Q_DECL_OVERRIDE
+    QString name() const override
     {
         return "Test";
     }
 
-    QString description() const Q_DECL_OVERRIDE
+    QString description() const override
     {
         return "The Harmony test plugin.";
     }
 
-    QList<HarmonyEndpoint> endpoints() const Q_DECL_OVERRIDE
+    std::vector<Endpoint> endpoints() const override
     {
-        QList<HarmonyEndpoint> endpoints;
-        HarmonyEndpoint testGet (HarmonyEndpoint::Get, "test_get");
-        HarmonyEndpoint testPost (HarmonyEndpoint::Post, "test_post");
-        HarmonyEndpoint testDelete (HarmonyEndpoint::Delete, "test_delete");
-        endpoints.append(testGet);
-        endpoints.append(testPost);
-        endpoints.append(testDelete);
+        std::vector<Endpoint> endpoints;
+        endpoints.push_back(Endpoint(Endpoint::Type::Get, "test_get"));
+        endpoints.push_back(Endpoint(Endpoint::Type::Post, "test_post"));
+        endpoints.push_back(Endpoint(Endpoint::Type::Delete, "test_delete"));
         return endpoints;
     }
 
-    HarmonyRequestResult request(const HarmonyEndpoint &endpoint,
-                                 const QJsonDocument &params, const QJsonDocument &body)
+    Reply handleRequest(const Endpoint &endpoint, const QUrlQuery &params,
+                        const QJsonDocument &body) const override
     {
-        QJsonObject returned;
-        QString type;
+        QJsonObject returned {};
+        QString type {};
         switch (endpoint.type()) {
-        case HarmonyEndpoint::Get:
+        case Endpoint::Type::Get:
             type = "get";
             break;
-        case HarmonyEndpoint::Post:
+        case Endpoint::Type::Post:
             type = "post";
             break;
-        case HarmonyEndpoint::Delete:
+        case Endpoint::Type::Delete:
             type = "delete";
             break;
         default:
             break;
         }
 
+        QJsonObject paramsObject;
+        for (const QPair<QString, QString> &query : params.queryItems(QUrl::FullyDecoded)) {
+            paramsObject.insert(query.first, query.second);
+        }
+
         returned.insert("type", type);
-        returned.insert("name", endpoint.name());
-        returned.insert("params", params.object());
+        returned.insert("name", QString::fromStdString(endpoint.name()));
+        returned.insert("params", paramsObject);
         returned.insert("body", body.object());
 
-        return HarmonyRequestResult(QJsonDocument(returned));
+        return Reply(QJsonDocument(returned));
     }
 };
 

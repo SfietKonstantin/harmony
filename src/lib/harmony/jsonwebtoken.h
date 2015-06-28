@@ -57,7 +57,6 @@ public:
     bool operator==(const JsonWebToken &other) const;
     bool isNull() const;
     QJsonObject payload() const;
-    void setPayload(const QJsonObject &payload);
     QByteArray toJwt(const QByteArray &key) const;
     static JsonWebToken fromJwt(const QByteArray &jwt, const QByteArray &key);
 private:

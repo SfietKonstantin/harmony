@@ -7,7 +7,8 @@ include(../../../config.pri)
 include(../../../lib/civet/civet-deps.pri)
 
 INCLUDEPATH += ../../../lib/harmony
-LIBS += -L../../../lib/harmony -lharmony \
+LIBS += -L../../../plugins/test -lharmonytestplugin \
+    -L../../../lib/harmony -lharmony \
     -L../../../lib/civet -lcivet
 
 SOURCES += tst_server.cpp

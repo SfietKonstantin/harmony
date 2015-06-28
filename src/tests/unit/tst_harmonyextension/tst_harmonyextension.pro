@@ -1,25 +1,12 @@
 TEMPLATE = app
 TARGET = tst_harmonyextension
 
-QT = core dbus testlib
+QT = core testlib
 
 include(../../../config.pri)
 
-INCLUDEPATH += ../../lib \
-    ../../../lib/harmony
+INCLUDEPATH += ../../../lib/harmony
 LIBS += -L../../../plugins/test -lharmonytestplugin \
-    -L../../lib -lharmonytest \
     -L../../../lib/harmony -lharmony
 
-HEADERS += testadaptor.h \
-    testproxy.h
-
-SOURCES += tst_harmonyextension.cpp \
-    testadaptor.cpp \
-    testproxy.cpp
-
-OTHER_FILES += \
-    org.sfietkonstantin.harmony.test.xml
-
-system(qdbusxml2cpp org.sfietkonstantin.harmony.test.xml -a testadaptor -c TestAdaptor -i harmonyextension.h)
-system(qdbusxml2cpp org.sfietkonstantin.harmony.test.xml -p testproxy -c TestProxy -i harmonyextension.h)
+SOURCES += tst_harmonyextension.cpp

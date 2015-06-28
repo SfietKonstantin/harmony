@@ -31,218 +31,78 @@
 
 #include <QtTest/QtTest>
 #include <harmonyextension.h>
-#include <testserviceprovider.h>
-#include "testadaptor.h"
-#include "testproxy.h"
+#include <iextensionmanager.h>
 
 Q_IMPORT_PLUGIN(HarmonyTestPlugin)
 
-class DBusTestObject: public QObject
-{
-    Q_OBJECT
-public:
-    explicit DBusTestObject(QObject *parent = 0);
-private Q_SLOTS:
-    HarmonyEndpoint TestEndpoint(const HarmonyEndpoint &endpoint);
-    HarmonyRequestResult TestRequestResult(const HarmonyRequestResult &requestResult);
-};
-
-DBusTestObject::DBusTestObject(QObject *parent)
-    : QObject(parent)
-{
-    new TestAdaptor(this);
-}
-
-HarmonyEndpoint DBusTestObject::TestEndpoint(const HarmonyEndpoint &endpoint)
-{
-    return endpoint;
-}
-
-HarmonyRequestResult DBusTestObject::TestRequestResult(const HarmonyRequestResult &requestResult)
-{
-    return requestResult;
-}
+using namespace harmony;
 
 class TstHarmonyExtension : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
-    void testHarmonyEndpoint();
-    void testHarmonyEndpointDBus();
-    void testHarmonyRequestResult();
-    void testHarmonyRequestResultDBus();
-    void testPluginManager();
+    void testEndpoint();
+    void testReply();
+    void testExtensionManager();
 };
 
-void TstHarmonyExtension::testHarmonyEndpoint()
+void TstHarmonyExtension::testEndpoint()
 {
-    HarmonyEndpoint endpoint1;
+    Endpoint endpoint1;
     QVERIFY(endpoint1.isNull());
-    QCOMPARE(endpoint1.type(), HarmonyEndpoint::Invalid);
-    QVERIFY(endpoint1.name().isEmpty());
+    QCOMPARE(endpoint1.type(), Endpoint::Type::Invalid);
+    QVERIFY(endpoint1.name().empty());
 
-    endpoint1.setType(HarmonyEndpoint::Get);
-    QVERIFY(endpoint1.isNull());
-    QCOMPARE(endpoint1.type(), HarmonyEndpoint::Get);
-    QVERIFY(endpoint1.name().isEmpty());
+    Endpoint endpoint2 (Endpoint::Type::Get, "test");
+    QVERIFY(!endpoint2.isNull());
+    QCOMPARE(endpoint2.type(), Endpoint::Type::Get);
+    QCOMPARE(endpoint2.name(), std::string("test"));
 
-    endpoint1.setName("test");
-    QVERIFY(!endpoint1.isNull());
-    QCOMPARE(endpoint1.type(), HarmonyEndpoint::Get);
-    QCOMPARE(endpoint1.name(), QString("test"));
+    Endpoint endpoint3 (Endpoint::Type::Post, "test2");
 
-    HarmonyEndpoint endpoint2 (endpoint1);
-    QCOMPARE(endpoint2.isNull(), endpoint1.isNull());
-    QCOMPARE(endpoint2.type(), endpoint1.type());
-    QCOMPARE(endpoint2.name(), endpoint1.name());
-    QVERIFY(endpoint2 == endpoint1);
-
-    HarmonyEndpoint endpoint3;
-    endpoint3 = endpoint1;
-    QCOMPARE(endpoint3.isNull(), endpoint1.isNull());
-    QCOMPARE(endpoint3.type(), endpoint1.type());
-    QCOMPARE(endpoint3.name(), endpoint1.name());
-
-    HarmonyEndpoint endpoint4 (HarmonyEndpoint::Post, "test2");
-    QVERIFY(!endpoint4.isNull());
-    QCOMPARE(endpoint4.type(), HarmonyEndpoint::Post);
-    QCOMPARE(endpoint4.name(), QString("test2"));
-
-    HarmonyEndpoint endpoint5 (endpoint1);
-    endpoint5.setName("test2");
-    QVERIFY(!endpoint5.isNull());
-    QCOMPARE(endpoint5.type(), HarmonyEndpoint::Get);
-    QCOMPARE(endpoint5.name(), QString("test2"));
-    QVERIFY(!(endpoint5 == endpoint1));
-
+    QVERIFY(endpoint2 == endpoint2);
+    QVERIFY(!(endpoint2 == endpoint3));
 }
 
-void TstHarmonyExtension::testHarmonyEndpointDBus()
+void TstHarmonyExtension::testReply()
 {
-    TestServiceProvider::create();
-    DBusTestObject dbusTestObject;
-    QVERIFY(QDBusConnection::sessionBus().registerObject("/test", &dbusTestObject));
+    Reply reply1 {};
+    QVERIFY(reply1.isNull());
+    QCOMPARE(reply1.status(), 200);
+    QCOMPARE(reply1.type(), Reply::Type::Invalid);
+    QVERIFY(reply1.value().empty());
 
-    HarmonyEndpoint endpoint (HarmonyEndpoint::Post, "test");
-    TestProxy proxy ("org.sfietkonstantin.Harmony", "/test", QDBusConnection::sessionBus());
+    QJsonDocument document = QJsonDocument::fromJson("[1]");
+    Reply reply2 {document};
+    QVERIFY(!reply2.isNull());
+    QCOMPARE(reply2.status(), 200);
+    QCOMPARE(reply2.type(), Reply::Type::Json);
+    QCOMPARE(reply2.value(), std::string("[1]"));
+    QCOMPARE(reply2.valueJson(), document);
 
-    HarmonyEndpoint result = proxy.TestEndpoint(endpoint);
-    QVERIFY(result == endpoint);
+    Reply reply3 {404, document};
+    QCOMPARE(reply3.status(), 404);
+    QCOMPARE(reply3.type(), Reply::Type::Json);
+    QCOMPARE(reply3.value(), std::string("[1]"));
+    QCOMPARE(reply3.valueJson(), document);
 
-    endpoint = HarmonyEndpoint(HarmonyEndpoint::Get, "test2");
-    result = proxy.TestEndpoint(endpoint);
-    QVERIFY(result == endpoint);
-
-    endpoint = HarmonyEndpoint(HarmonyEndpoint::Delete, "test3");
-    result = proxy.TestEndpoint(endpoint);
-    QVERIFY(result == endpoint);
-
-    QDBusConnection::sessionBus().unregisterObject("/test");
+    QVERIFY(reply2 == reply2);
+    QVERIFY(!(reply2 == reply3));
 }
 
-void TstHarmonyExtension::testHarmonyRequestResult()
+void TstHarmonyExtension::testExtensionManager()
 {
-    HarmonyRequestResult result1;
-    QVERIFY(result1.isNull());
-    QCOMPARE(result1.type(), HarmonyRequestResult::Invalid);
-    QCOMPARE(result1.status(), 200);
-    QVERIFY(result1.value().isEmpty());
+    IExtensionManager::Ptr extensionManager = IExtensionManager::create();
+    std::vector<Extension *> extensions = extensionManager->extensions();
+    QCOMPARE(static_cast<int>(extensions.size()), 1);
 
-    result1.setType(HarmonyRequestResult::Json);
-    QVERIFY(result1.isNull());
-    QCOMPARE(result1.type(), HarmonyRequestResult::Json);
-    QCOMPARE(result1.status(), 200);
-    QVERIFY(result1.value().isEmpty());
+    const Extension *testExtension = *extensions.begin();
+    QCOMPARE(testExtension->id(), std::string("test"));
+    QCOMPARE(testExtension->name(), QString("Test"));
+    QCOMPARE(testExtension->description(), QString("The Harmony test plugin."));
 
-    result1.setStatus(404);
-    QVERIFY(result1.isNull());
-    QCOMPARE(result1.type(), HarmonyRequestResult::Json);
-    QCOMPARE(result1.status(), 404);
-    QVERIFY(result1.value().isEmpty());
-
-    result1.setValue("[1]");
-    QVERIFY(!result1.isNull());
-    QCOMPARE(result1.type(), HarmonyRequestResult::Json);
-    QCOMPARE(result1.status(), 404);
-    QCOMPARE(result1.value(), QString("[1]"));
-
-    HarmonyRequestResult result2 (result1);
-    QCOMPARE(result2.isNull(), result1.isNull());
-    QCOMPARE(result2.type(), result1.type());
-    QCOMPARE(result2.status(), result1.status());
-    QCOMPARE(result2.value(), result1.value());
-
-    HarmonyRequestResult result3;
-    result3 = result1;
-    QCOMPARE(result3.isNull(), result1.isNull());
-    QCOMPARE(result3.type(), result1.type());
-    QCOMPARE(result3.status(), result1.status());
-    QCOMPARE(result3.value(), result1.value());
-
-    QJsonObject testJsonObjct;
-    testJsonObjct.insert("test", 1);
-    QJsonDocument testDocument (testJsonObjct);
-    HarmonyRequestResult endpoint4 (testDocument);
-    QVERIFY(!endpoint4.isNull());
-    QCOMPARE(endpoint4.type(), HarmonyRequestResult::Json);
-    QCOMPARE(endpoint4.status(), 200);
-    QCOMPARE(endpoint4.value(), QString("{\"test\":1}"));
-
-    HarmonyRequestResult endpoint5 ("/usr/bin/harmony");
-    QVERIFY(!endpoint5.isNull());
-    QCOMPARE(endpoint5.type(), HarmonyRequestResult::File);
-    QCOMPARE(endpoint5.status(), 200);
-    QCOMPARE(endpoint5.value(), QString("/usr/bin/harmony"));
-
-    HarmonyRequestResult endpoint6 (404, testDocument);
-    QVERIFY(!endpoint6.isNull());
-    QCOMPARE(endpoint6.type(), HarmonyRequestResult::Json);
-    QCOMPARE(endpoint6.status(), 404);
-    QCOMPARE(endpoint6.value(), QString("{\"test\":1}"));
-
-    HarmonyRequestResult endpoint7 (endpoint5);
-    endpoint7.setValue("test2");
-    QVERIFY(!endpoint7.isNull());
-    QCOMPARE(endpoint7.type(), HarmonyRequestResult::File);
-    QCOMPARE(endpoint7.status(), 200);
-    QCOMPARE(endpoint7.value(), QString("test2"));
-}
-
-void TstHarmonyExtension::testHarmonyRequestResultDBus()
-{
-    TestServiceProvider::create();
-    DBusTestObject dbusTestObject;
-    QVERIFY(QDBusConnection::sessionBus().registerObject("/test", &dbusTestObject));
-
-    HarmonyRequestResult endpoint ("/usr/bin/harmony");
-    TestProxy proxy ("org.sfietkonstantin.Harmony", "/test", QDBusConnection::sessionBus());
-
-    HarmonyRequestResult result = proxy.TestRequestResult(endpoint);
-    QVERIFY(result == endpoint);
-
-    QJsonObject testJsonObjct;
-    testJsonObjct.insert("test", 1);
-    QJsonDocument testDocument (testJsonObjct);
-    endpoint = HarmonyRequestResult(404, testDocument);
-    result = proxy.TestRequestResult(endpoint);
-    QVERIFY(result == endpoint);
-
-    QDBusConnection::sessionBus().unregisterObject("/test");
-}
-
-void TstHarmonyExtension::testPluginManager()
-{
-    PluginManager::Ptr pluginManager = PluginManager::create();
-    QList<HarmonyExtension *> plugins = pluginManager->plugins();
-    QCOMPARE(plugins.count(), 1);
-
-    const HarmonyExtension *testPlugin = plugins.first();
-    QCOMPARE(testPlugin->id(), QString("test"));
-    QCOMPARE(testPlugin->name(), QString("Test"));
-    QCOMPARE(testPlugin->description(), QString("The Harmony test plugin."));
-
-    const QList<HarmonyEndpoint> &endpoints = testPlugin->endpoints();
-    QCOMPARE(endpoints.count(), 3);
+    const std::vector<Endpoint> &endpoints = testExtension->endpoints();
+    QCOMPARE(static_cast<int>(endpoints.size()), 3);
 }
 
 

@@ -34,99 +34,84 @@
 
 #include <QObject>
 #include <QtCore/QtPlugin>
+#include <QtCore/QUrlQuery>
 #include <QtCore/QJsonDocument>
-#include <QtDBus/QDBusArgument>
 
-class HarmonyEndpointPrivate;
-class HarmonyEndpoint
+namespace harmony
+{
+
+class Endpoint
 {
 public:
-    enum Type
+    enum class Type
     {
         Invalid,
         Get,
         Post,
         Delete
     };
-    explicit HarmonyEndpoint();
-    explicit HarmonyEndpoint(Type type, const QString &name);
-    HarmonyEndpoint(const HarmonyEndpoint &other);
-    HarmonyEndpoint & operator=(const HarmonyEndpoint &other);
-    virtual ~HarmonyEndpoint();
-    bool operator==(const HarmonyEndpoint &other) const;
+    explicit Endpoint();
+    explicit Endpoint(Type type, const std::string &name);
+    bool operator==(const Endpoint &other) const;
     bool isNull() const;
     Type type() const;
-    void setType(Type type);
-    QString name() const;
-    void setName(const QString &name);
+    std::string name() const;
 private:
-    QSharedDataPointer<HarmonyEndpointPrivate> d_ptr;
+    Type m_type {Type::Invalid};
+    std::string m_name {};
 };
 
-Q_DECLARE_METATYPE(HarmonyEndpoint)
-QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyEndpoint &harmonyEndpoint);
-const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyEndpoint &harmonyEndpoint);
-
-class HarmonyRequestResultPrivate;
-class HarmonyRequestResult
+class Reply
 {
 public:
-    enum Type
+    enum class Type
     {
         Invalid,
-        Json,
-        File
+        Json
     };
-    explicit HarmonyRequestResult();
-    explicit HarmonyRequestResult(const QJsonDocument &json);
-    explicit HarmonyRequestResult(const QString &file);
-    explicit HarmonyRequestResult(int status, const QJsonDocument &json);
-    HarmonyRequestResult(const HarmonyRequestResult &other);
-    HarmonyRequestResult & operator=(const HarmonyRequestResult &other);
-    virtual ~HarmonyRequestResult();
-    bool operator==(const HarmonyRequestResult &other) const;
+    explicit Reply();
+    explicit Reply(const QJsonDocument &json);
+    explicit Reply(int status, const QJsonDocument &json);
+    bool operator==(const Reply &other) const;
     bool isNull() const;
     int status() const;
-    void setStatus(int status);
     Type type() const;
-    void setType(Type type);
-    QString value() const;
-    void setValue(const QString &value);
+    std::string value() const;
     QJsonDocument valueJson() const;
 private:
-    QSharedDataPointer<HarmonyRequestResultPrivate> d_ptr;
+    int m_status {200};
+    Type m_type {Type::Invalid};
+    std::string m_value {};
 };
 
-Q_DECLARE_METATYPE(HarmonyRequestResult)
-QDBusArgument &operator<<(QDBusArgument &argument, const HarmonyRequestResult &harmonyRequestResult);
-const QDBusArgument &operator>>(const QDBusArgument &argument, HarmonyRequestResult &harmonyEndpoint);
-
-class IHarmonyExtension
+class IExtension
 {
 public:
-    virtual ~IHarmonyExtension() {}
-    virtual QString id() const = 0;
+    virtual ~IExtension() {}
+    virtual std::string id() const = 0;
     virtual QString name() const = 0;
     virtual QString description() const = 0;
-    virtual QList<HarmonyEndpoint> endpoints() const = 0;
-protected:
-    virtual HarmonyRequestResult request(const HarmonyEndpoint &endpoint,
-                                         const QJsonDocument &params,
-                                         const QJsonDocument &body) = 0;
+    virtual std::vector<Endpoint> endpoints() const = 0;
+    virtual Reply handleRequest(const Endpoint &endpoint, const QUrlQuery &params,
+                                const QJsonDocument &body) const = 0;
 };
 
-Q_DECLARE_INTERFACE(IHarmonyExtension, "org.SfietKonstantin.harmony.IHarmonyExtension/1.0")
+}
 
-class HarmonyExtension : public QObject, public IHarmonyExtension
+Q_DECLARE_INTERFACE(harmony::IExtension, "org.SfietKonstantin.harmony.IExtension/1.0")
+
+namespace harmony
+{
+
+class Extension : public QObject, public IExtension
 {
     Q_OBJECT
-    Q_INTERFACES(IHarmonyExtension)
+    Q_INTERFACES(harmony::IExtension)
 public:
-    explicit HarmonyExtension(QObject *parent = 0);
-    virtual ~HarmonyExtension();
-private:
-    Q_INVOKABLE HarmonyRequestResult Request(const HarmonyEndpoint &endpoint, const QString &params,
-                                             const QString &body);
+    explicit Extension(QObject *parent = 0);
 };
+
+}
+
 
 #endif // HARMONYEXTENSION_H

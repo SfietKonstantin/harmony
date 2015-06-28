@@ -1,5 +1,6 @@
 TEMPLATE = subdirs
 SUBDIRS = lib \
+    plugins \
     tests
 
-tests.depends = lib
+tests.depends = lib plugins

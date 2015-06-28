@@ -29,60 +29,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include "pluginmanager.h"
-#include <QtCore/QPluginLoader>
-#include <QtCore/QCoreApplication>
+#ifndef IEXTENSIONMANAGER_H
+#define IEXTENSIONMANAGER_H
 
-class PluginManagerPrivate
+#include <memory>
+#include "harmonyextension.h"
+
+namespace harmony
+{
+
+class IExtensionManager
 {
 public:
-    explicit PluginManagerPrivate(PluginManager *q);
-    void init();
-    QList<HarmonyExtension *> plugins;
-protected:
-    PluginManager * const q_ptr;
-private:
-    Q_DECLARE_PUBLIC(PluginManager)
+    using Ptr = std::unique_ptr<IExtensionManager>;
+    virtual ~IExtensionManager() {}
+    virtual std::vector<Extension *> extensions() const = 0;
+    static Ptr create();
 };
 
-PluginManagerPrivate::PluginManagerPrivate(PluginManager *q)
-    : q_ptr(q)
-{
-    init();
 }
 
-void PluginManagerPrivate::init()
-{
-    QList<QObject *> staticPlugins = QPluginLoader::staticInstances();
-    for (QObject *object : staticPlugins) {
-        HarmonyExtension *harmonyExtension = qobject_cast<HarmonyExtension *>(object);
-        if (harmonyExtension) {
-            plugins.append(harmonyExtension);
-        }
-    }
-}
-
-PluginManager::PluginManager()
-    : QObject(), d_ptr(new PluginManagerPrivate(this))
-{
-}
-
-PluginManager::~PluginManager()
-{
-    // Destroy plugins to workaround a Qt bug
-    QList<QObject *> plugins = QPluginLoader::staticInstances();
-    for (QObject *plugin : plugins) {
-        delete plugin;
-    }
-}
-
-PluginManager::Ptr PluginManager::create()
-{
-    return Ptr(new PluginManager());
-}
-
-QList<HarmonyExtension *> PluginManager::plugins() const
-{
-    Q_D(const PluginManager);
-    return d->plugins;
-}
+#endif // IEXTENSIONMANAGER_H

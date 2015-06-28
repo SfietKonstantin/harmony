@@ -45,7 +45,7 @@ class TstAuthentificationService: public QObject
 private Q_SLOTS:
     void testSimple()
     {
-        IAuthentificationService::Ptr service = IAuthentificationService::create();
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test");
         QCOMPARE(static_cast<int>(service->password().size()), 8);
         const JsonWebToken &token = service->authenticate(service->password());
         QVERIFY(!token.isNull());
@@ -57,12 +57,22 @@ private Q_SLOTS:
         IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
             changed = true;
         };
-        IAuthentificationService::Ptr service = IAuthentificationService::create(callback);
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test", callback);
         QVERIFY(service->authenticate("test").isNull());
         QVERIFY(!changed);
         service->authenticate("test");
         QVERIFY(!changed);
         service->authenticate("test");
+        QVERIFY(changed);
+    }
+    void testPasswordChanged2()
+    {
+        bool changed {false};
+        IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
+            changed = true;
+        };
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test", callback);
+        QVERIFY(!service->authenticate(service->password()).isNull());
         QVERIFY(changed);
     }
 };

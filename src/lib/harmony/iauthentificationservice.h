@@ -47,7 +47,9 @@ public:
     virtual ~IAuthentificationService() {}
     virtual std::string password() const = 0;
     virtual JsonWebToken authenticate(const std::string &password) = 0;
-    static Ptr create(PasswordChangedCallback_t passwordChangedCallback = PasswordChangedCallback_t());
+    virtual QByteArray hashJwt(const JsonWebToken &token) = 0;
+    static Ptr create(const QByteArray &key,
+                      PasswordChangedCallback_t passwordChangedCallback = PasswordChangedCallback_t());
 };
 
 }
