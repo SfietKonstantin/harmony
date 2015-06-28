@@ -6,8 +6,7 @@ QT = core network testlib
 include(../../../config.pri)
 include(../../../lib/civet/civet-deps.pri)
 
-INCLUDEPATH += ../../lib \
-    ../../../lib/harmony
+INCLUDEPATH += ../../../lib/harmony
 LIBS += -L../../../lib/harmony -lharmony \
     -L../../../lib/civet -lcivet
 

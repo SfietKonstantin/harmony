@@ -30,64 +30,65 @@
  */
 
 #include <QtTest/QtTest>
-#include <QtTest/QSignalSpy>
 #include <QtCore/QDebug>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
 #include <jsonwebtoken.h>
-#include <iserver.h>
 
 using namespace harmony;
 
 static const int PORT = 8080;
 
-class TstServer: public QObject
+class TstJwt: public QObject
 {
     Q_OBJECT
-private:
-    static void handleSslErrors(QNetworkReply &reply)
-    {
-        connect(&reply, &QNetworkReply::sslErrors, [&reply](const QList<QSslError> &sslErrors) {
-            reply.ignoreSslErrors(sslErrors);
-        });
-    }
-
 private Q_SLOTS:
-    void initTestCase()
+    void testSimple()
     {
-        Q_INIT_RESOURCE(harmony);
+        QJsonObject payload;
+        payload.insert("sub", "1234567890");
+        payload.insert("name", "John Doe");
+        payload.insert("admin", true);
+
+        JsonWebToken token {payload};
+        const QByteArray &jwt = token.toJwt("secret");
+        QCOMPARE(jwt, QByteArray("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZG1pbiI6dHJ1ZSwibmFtZSI6IkpvaG4gRG9lIiwic3ViIjoiMTIzNDU2Nzg5MCJ9.78d2bf7e29ac096dd0fa678e5f273f767647b9b9760f8799908727ea59678829"));
+
+        JsonWebToken verificationToken = JsonWebToken::fromJwt(jwt, "secret");
+        QVERIFY(!verificationToken.isNull());
+        QCOMPARE(token, verificationToken);
     }
-    void testPing()
+    void testBad()
     {
-        QNetworkAccessManager network {};
-        std::unique_ptr<QNetworkReply> reply {};
+        // Wrong token shape
+        JsonWebToken verificationToken1 = JsonWebToken::fromJwt("aaaaaaaaaaaaaaaaaa", "secret");
+        QVERIFY(verificationToken1.isNull());
 
-        IServer::Ptr server = IServer::create(PORT);
-        QCOMPARE(server->port(), PORT);
-        QVERIFY(server->start());
+        QJsonObject payload;
+        payload.insert("sub", "1234567890");
+        payload.insert("name", "John Doe");
+        payload.insert("admin", true);
 
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
+        // Wrong signature
+        JsonWebToken token {payload};
+        QByteArray jwt2 = token.toJwt("secret");
+        jwt2.append("a");
 
-        QCOMPARE(reply->error(), QNetworkReply::NoError);
-        QCOMPARE(reply->readAll(), QByteArray("pong"));
+        JsonWebToken verificationToken2 = JsonWebToken::fromJwt(jwt2, "secret");
+        QVERIFY(verificationToken2.isNull());
 
-        server->stop();
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
-        QCOMPARE(reply->error(), QNetworkReply::ConnectionRefusedError);
+        // Wrong payload
+        QByteArray jwt3 = "aaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaa";
+        const QByteArray &signature3 = QMessageAuthenticationCode::hash(jwt3, "secret",
+                                                                        QCryptographicHash::Sha256).toHex();
+        jwt3.append(".");
+        jwt3.append(signature3);
+
+        JsonWebToken verificationToken3 = JsonWebToken::fromJwt(jwt3, "secret");
+        QVERIFY(verificationToken3.isNull());
     }
 };
 
 
-QTEST_MAIN(TstServer)
+QTEST_MAIN(TstJwt)
 
-#include "tst_server.moc"
+#include "tst_jwt.moc"
 

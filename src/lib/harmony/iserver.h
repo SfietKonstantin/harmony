@@ -45,7 +45,7 @@ public:
     virtual int port() const = 0;
     virtual bool start() = 0;
     virtual void stop() = 0;
-    static Ptr create(int port);
+    static Ptr create(int port); // Do not create multiple servers, not supported by civetweb
 };
 
 }

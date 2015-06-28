@@ -29,65 +29,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include <QtTest/QtTest>
-#include <QtTest/QSignalSpy>
-#include <QtCore/QDebug>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
-#include <jsonwebtoken.h>
-#include <iserver.h>
+#ifndef IAUTHENTIFICATIONSERVICE_H
+#define IAUTHENTIFICATIONSERVICE_H
 
-using namespace harmony;
+#include <memory>
+#include <functional>
+#include "jsonwebtoken.h"
 
-static const int PORT = 8080;
-
-class TstServer: public QObject
+namespace harmony
 {
-    Q_OBJECT
-private:
-    static void handleSslErrors(QNetworkReply &reply)
-    {
-        connect(&reply, &QNetworkReply::sslErrors, [&reply](const QList<QSslError> &sslErrors) {
-            reply.ignoreSslErrors(sslErrors);
-        });
-    }
 
-private Q_SLOTS:
-    void initTestCase()
-    {
-        Q_INIT_RESOURCE(harmony);
-    }
-    void testPing()
-    {
-        QNetworkAccessManager network {};
-        std::unique_ptr<QNetworkReply> reply {};
-
-        IServer::Ptr server = IServer::create(PORT);
-        QCOMPARE(server->port(), PORT);
-        QVERIFY(server->start());
-
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
-
-        QCOMPARE(reply->error(), QNetworkReply::NoError);
-        QCOMPARE(reply->readAll(), QByteArray("pong"));
-
-        server->stop();
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
-        QCOMPARE(reply->error(), QNetworkReply::ConnectionRefusedError);
-    }
+class IAuthentificationService
+{
+public:
+    using Ptr = std::unique_ptr<IAuthentificationService>;
+    using PasswordChangedCallback_t = std::function<void(const std::string &password)>;
+    virtual ~IAuthentificationService() {}
+    virtual std::string password() const = 0;
+    virtual JsonWebToken authenticate(const std::string &password) = 0;
+    static Ptr create(PasswordChangedCallback_t passwordChangedCallback = PasswordChangedCallback_t());
 };
 
+}
 
-QTEST_MAIN(TstServer)
-
-#include "tst_server.moc"
+#endif // IAUTHENTIFICATIONSERVICE_H
 

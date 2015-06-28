@@ -26,6 +26,7 @@ HEADERS += \
     iserver.h \
 #    certificateprovider.h \
     jsonwebtoken.h \
+    iauthentificationservice.h
 
 SOURCES += \
 #    serviceprovider.cpp \
@@ -43,7 +44,8 @@ SOURCES += \
 #    pluginadaptor.cpp \
     server.cpp \
 #    certificateprovider.cpp \
-    jsonwebtoken.cpp
+    jsonwebtoken.cpp \
+    authentificationservice.cpp
 
 RESOURCES += \
     harmony.qrc

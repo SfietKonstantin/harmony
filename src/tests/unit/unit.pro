@@ -1,2 +1,4 @@
 TEMPLATE = subdirs
-SUBDIRS += tst_server
+SUBDIRS += tst_authentificationservice \
+    tst_jwt \
+    tst_server

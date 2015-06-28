@@ -32,62 +32,43 @@
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
 #include <QtCore/QDebug>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
-#include <jsonwebtoken.h>
-#include <iserver.h>
+#include <QtCore/QDateTime>
+#include <iauthentificationservice.h>
 
 using namespace harmony;
 
 static const int PORT = 8080;
 
-class TstServer: public QObject
+class TstAuthentificationService: public QObject
 {
     Q_OBJECT
-private:
-    static void handleSslErrors(QNetworkReply &reply)
-    {
-        connect(&reply, &QNetworkReply::sslErrors, [&reply](const QList<QSslError> &sslErrors) {
-            reply.ignoreSslErrors(sslErrors);
-        });
-    }
-
 private Q_SLOTS:
-    void initTestCase()
+    void testSimple()
     {
-        Q_INIT_RESOURCE(harmony);
+        IAuthentificationService::Ptr service = IAuthentificationService::create();
+        QCOMPARE(static_cast<int>(service->password().size()), 8);
+        const JsonWebToken &token = service->authenticate(service->password());
+        QVERIFY(!token.isNull());
+        QCOMPARE(token.payload().value("iat"), QJsonValue(QDateTime::currentMSecsSinceEpoch() / 1000));
     }
-    void testPing()
+    void testPasswordChanged()
     {
-        QNetworkAccessManager network {};
-        std::unique_ptr<QNetworkReply> reply {};
-
-        IServer::Ptr server = IServer::create(PORT);
-        QCOMPARE(server->port(), PORT);
-        QVERIFY(server->start());
-
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
-
-        QCOMPARE(reply->error(), QNetworkReply::NoError);
-        QCOMPARE(reply->readAll(), QByteArray("pong"));
-
-        server->stop();
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/ping"))));
-        handleSslErrors(*reply);
-        while (!reply->isFinished()) {
-            QTest::qWait(100);
-        }
-        QCOMPARE(reply->error(), QNetworkReply::ConnectionRefusedError);
+        bool changed {false};
+        IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
+            changed = true;
+        };
+        IAuthentificationService::Ptr service = IAuthentificationService::create(callback);
+        QVERIFY(service->authenticate("test").isNull());
+        QVERIFY(!changed);
+        service->authenticate("test");
+        QVERIFY(!changed);
+        service->authenticate("test");
+        QVERIFY(changed);
     }
 };
 
 
-QTEST_MAIN(TstServer)
+QTEST_MAIN(TstAuthentificationService)
 
-#include "tst_server.moc"
+#include "tst_authentificationservice.moc"
 
