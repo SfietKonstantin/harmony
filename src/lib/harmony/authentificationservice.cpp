@@ -52,6 +52,7 @@ public:
     std::string password() const override;
     JsonWebToken authenticate(const std::string &password) override;
     QByteArray hashJwt(const JsonWebToken &token) override;
+    bool isAuthorized(const QByteArray &jwt) override;
 private:
     void decrementPasswordAttempts();
     void generatePassword(bool init = false);
@@ -85,7 +86,7 @@ JsonWebToken AuthentificationService::authenticate(const std::string &password)
     chrono::time_point<std::chrono::system_clock> now = chrono::system_clock::now();
     int iat = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
 
-    QString jti = QUuid::createUuid().toString(); // TODO: save the JTI
+    QString jti = QUuid::createUuid().toString().remove("{").remove("}"); // TODO: save the JTI
     QJsonObject payload {};
     payload.insert("iat", iat);
     payload.insert("exp", iat + VALIDITY_DURATION);
@@ -96,6 +97,24 @@ JsonWebToken AuthentificationService::authenticate(const std::string &password)
 QByteArray AuthentificationService::hashJwt(const JsonWebToken &token)
 {
     return token.toJwt(m_key);
+}
+
+bool AuthentificationService::isAuthorized(const QByteArray &jwt)
+{
+    JsonWebToken token = JsonWebToken::fromJwt(jwt, m_key);
+    if (token.isNull()) {
+        return false;
+    }
+
+    chrono::time_point<std::chrono::system_clock> now = chrono::system_clock::now();
+    int currentTime = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
+
+    int exp = token.payload().value("exp").toInt();
+    if (currentTime >= exp) {
+        return false;
+    }
+
+    return true;
 }
 
 void AuthentificationService::decrementPasswordAttempts()

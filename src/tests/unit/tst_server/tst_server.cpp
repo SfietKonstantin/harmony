@@ -229,8 +229,27 @@ private Q_SLOTS:
         IServer::Ptr server = IServer::create(PORT, *as, *em);
         QVERIFY(server->start());
 
+        // Authorization
+        QNetworkRequest authorizationRequest (QUrl("https://localhost:8080/authenticate"));
+        authorizationRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+        QUrlQuery urlQuery;
+        urlQuery.addQueryItem("password", QString::fromStdString(as->password()));
+        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        reply.reset(network.post(authorizationRequest, query));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QByteArray token {"Bearer "};
+        token.append(reply->readAll());
+
+
         // Get
-        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?string=test&int=3"))));
+        QNetworkRequest getRequest (QUrl("https://localhost:8080/api/test/test_get?string=test&int=3"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
             QTest::qWait(100);
@@ -248,6 +267,7 @@ private Q_SLOTS:
         QJsonDocument document {postData};
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/api/test/test_post?string=test&int=3"));
+        postRequest.setRawHeader("Authorization", token);
         postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
         reply.reset(network.post(postRequest, document.toJson(QJsonDocument::Compact)));
         handleSslErrors(*reply);
@@ -259,7 +279,9 @@ private Q_SLOTS:
         QCOMPARE(reply->readAll(), QByteArray("{\"body\":{\"array\":[\"a\",\"b\",\"c\"],\"bool\":true,\"int\":12345,\"string\":\"test2\"},\"name\":\"test_post\",\"params\":{\"int\":\"3\",\"string\":\"test\"},\"type\":\"post\"}"));
 
         // Delete
-        reply.reset(network.deleteResource(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_delete?string=test&int=3"))));
+        QNetworkRequest deleteRequest (QUrl("https://localhost:8080/api/test/test_delete?string=test&int=3"));
+        deleteRequest.setRawHeader("Authorization", token);
+        reply.reset(network.deleteResource(deleteRequest));
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
             QTest::qWait(100);
@@ -267,6 +289,45 @@ private Q_SLOTS:
 
         QCOMPARE(reply->error(), QNetworkReply::NoError);
         QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_delete\",\"params\":{\"int\":\"3\",\"string\":\"test\"},\"type\":\"delete\"}"));
+    }
+    void testUnauthorizedRequests()
+    {
+        QNetworkAccessManager network {};
+        std::unique_ptr<QNetworkReply> reply {};
+
+        IAuthentificationService::Ptr as = IAuthentificationService::create("test");
+        IExtensionManager::Ptr em = IExtensionManager::create();
+        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        QVERIFY(server->start());
+
+        // Get
+        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get"))));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // Post
+        QNetworkRequest postRequest (QUrl("https://localhost:8080/api/test/test_post"));
+        postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        reply.reset(network.post(postRequest, "{}"));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // Delete
+        reply.reset(network.deleteResource(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_delete"))));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
     }
 };
 

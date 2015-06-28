@@ -140,17 +140,19 @@ private:
     class RequestHandler: public CivetHandler
     {
     public:
-        explicit RequestHandler(const Extension &extension, Endpoint endpoint);
+        explicit RequestHandler(Server &server, const Extension &extension, Endpoint endpoint);
         bool handleGet(CivetServer *, mg_connection *connection) override;
         bool handlePost(CivetServer *, mg_connection *connection) override;
         bool handleDelete(CivetServer *, mg_connection *connection) override;
         std::string endpoint() const;
     private:
         void handle(mg_connection *connection, bool hasData);
+        Server &m_server;
         const Extension &m_extension;
         Endpoint m_endpoint;
     };
     static QByteArray getCertificateFilePath();
+    static void writeAuthorizationRequired(mg_connection *connection);
     std::unique_ptr<CivetServer> m_server {nullptr};
     int m_port {0};
     IAuthentificationService &m_authentificationService;
@@ -166,7 +168,7 @@ Server::Server(int port, IAuthentificationService &authentificationService,
 {
     for (const Extension *extension : extensionManager.extensions()) {
         for (const Endpoint &endpoint : extension->endpoints()) {
-            m_handlers.push_back(RequestHandler(*extension, endpoint));
+            m_handlers.push_back(RequestHandler(*this, *extension, endpoint));
         }
     }
 }
@@ -261,6 +263,15 @@ QByteArray Server::getCertificateFilePath()
     return dir.absoluteFilePath(CERTIFICATE).toLocal8Bit();
 }
 
+void Server::writeAuthorizationRequired(mg_connection *connection)
+{
+    std::stringstream ss;
+    ss << "HTTP/1.1 401 Unauthorized\r\n"
+       << "\r\n"
+       << "Wrong authentification code";
+    mg_printf(connection, ss.str().c_str());
+}
+
 IServer::Ptr IServer::create(int port, IAuthentificationService &authentificationService,
                              const IExtensionManager &extensionManager)
 {
@@ -297,16 +308,12 @@ bool Server::AuthentificationHandler::handlePost(CivetServer *, mg_connection *c
         }
     }
 
-    std::stringstream ss;
-    ss << "HTTP/1.1 401 Unauthorized\r\n"
-       << "\r\n"
-       << "Wrong authentification code";
-    mg_printf(connection, ss.str().c_str());
+    writeAuthorizationRequired(connection);
     return true;
 }
 
-Server::RequestHandler::RequestHandler(const Extension &extension, Endpoint endpoint)
-    : m_extension(extension), m_endpoint(std::move(endpoint))
+Server::RequestHandler::RequestHandler(Server &server, const Extension &extension, Endpoint endpoint)
+    : m_server(server), m_extension(extension), m_endpoint(std::move(endpoint))
 {
 }
 
@@ -346,6 +353,19 @@ std::string Server::RequestHandler::endpoint() const
 
 void Server::RequestHandler::handle(mg_connection *connection, bool hasData)
 {
+    const char *authorizationCharArray = CivetServer::getHeader(connection, "Authorization");
+    std::string authorization = authorizationCharArray ? std::string(authorizationCharArray) : std::string();
+    if (authorization.empty() || authorization.find("Bearer ") != 0) {
+        writeAuthorizationRequired(connection);
+        return;
+    }
+
+    authorization = authorization.substr(7);
+    if (!m_server.m_authentificationService.isAuthorized(QByteArray::fromStdString(authorization))) {
+        writeAuthorizationRequired(connection);
+        return;
+    }
+
     const std::string &params = EnhancedCivetServer::getParameters(connection);
     QUrlQuery query {QString::fromStdString(params)};
 

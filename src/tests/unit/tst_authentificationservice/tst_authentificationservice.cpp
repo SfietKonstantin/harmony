@@ -75,6 +75,20 @@ private Q_SLOTS:
         QVERIFY(!service->authenticate(service->password()).isNull());
         QVERIFY(changed);
     }
+    void testIsAuthorized()
+    {
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test");
+        const JsonWebToken &token = service->authenticate(service->password());
+        QByteArray hashedJwt = service->hashJwt(token);
+        QVERIFY(service->isAuthorized(hashedJwt));
+        hashedJwt.append("1");
+        QVERIFY(!service->isAuthorized(hashedJwt));
+
+        QJsonObject payload;
+        payload.insert("exp", 10);
+        JsonWebToken expiredToken {payload};
+        QVERIFY(!service->isAuthorized(service->hashJwt(expiredToken)));
+    }
 };
 
 
