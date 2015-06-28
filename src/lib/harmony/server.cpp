@@ -35,6 +35,7 @@
 #include <CivetServer.h>
 #include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QJsonArray>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QDebug>
 #include "iauthentificationservice.h"
@@ -151,22 +152,35 @@ private:
         const Extension &m_extension;
         Endpoint m_endpoint;
     };
+    class ApiListHandler: public CivetHandler
+    {
+    public:
+        explicit ApiListHandler(Server &server);
+        bool handleGet(CivetServer *, mg_connection *connection) override;
+    private:
+        Server &m_server;
+    };
+
     static QByteArray getCertificateFilePath();
     static void writeAuthorizationRequired(mg_connection *connection);
+    bool checkAuthorization(mg_connection *connection);
     std::unique_ptr<CivetServer> m_server {nullptr};
     int m_port {0};
     IAuthentificationService &m_authentificationService;
+    const IExtensionManager &m_extensionManager;
     PingHandler m_pingHandler {};
     AuthentificationHandler m_authentificationHandler;
-    std::vector<RequestHandler> m_handlers;
+    std::vector<RequestHandler> m_handlers {};
+    ApiListHandler m_apiListHandler;
 };
 
 Server::Server(int port, IAuthentificationService &authentificationService,
                const IExtensionManager &extensionManager)
     : m_port{port}, m_authentificationService{authentificationService}
-    , m_authentificationHandler{*this}
+    , m_extensionManager{extensionManager} , m_authentificationHandler{*this}
+    , m_apiListHandler{*this}
 {
-    for (const Extension *extension : extensionManager.extensions()) {
+    for (const Extension *extension : m_extensionManager.extensions()) {
         for (const Endpoint &endpoint : extension->endpoints()) {
             m_handlers.push_back(RequestHandler(*this, *extension, endpoint));
         }
@@ -201,6 +215,7 @@ bool Server::start()
         for (RequestHandler &handler : m_handlers) {
             m_server->addHandler(handler.endpoint(), handler);
         }
+        m_server->addHandler("/api/list", m_apiListHandler);
     } catch (const CertificateException &e) {
 #if HARMONY_DEBUG
         qWarning() << "Exception when creating certificate:" << e.what();
@@ -270,6 +285,23 @@ void Server::writeAuthorizationRequired(mg_connection *connection)
        << "\r\n"
        << "Wrong authentification code";
     mg_printf(connection, ss.str().c_str());
+}
+
+bool Server::checkAuthorization(mg_connection *connection)
+{
+    const char *authorizationCharArray = CivetServer::getHeader(connection, "Authorization");
+    std::string authorization = authorizationCharArray ? std::string(authorizationCharArray) : std::string();
+    if (authorization.empty() || authorization.find("Bearer ") != 0) {
+        writeAuthorizationRequired(connection);
+        return false;
+    }
+
+    authorization = authorization.substr(7);
+    if (!m_authentificationService.isAuthorized(QByteArray::fromStdString(authorization))) {
+        writeAuthorizationRequired(connection);
+        return false;
+    }
+    return true;
 }
 
 IServer::Ptr IServer::create(int port, IAuthentificationService &authentificationService,
@@ -353,16 +385,7 @@ std::string Server::RequestHandler::endpoint() const
 
 void Server::RequestHandler::handle(mg_connection *connection, bool hasData)
 {
-    const char *authorizationCharArray = CivetServer::getHeader(connection, "Authorization");
-    std::string authorization = authorizationCharArray ? std::string(authorizationCharArray) : std::string();
-    if (authorization.empty() || authorization.find("Bearer ") != 0) {
-        writeAuthorizationRequired(connection);
-        return;
-    }
-
-    authorization = authorization.substr(7);
-    if (!m_server.m_authentificationService.isAuthorized(QByteArray::fromStdString(authorization))) {
-        writeAuthorizationRequired(connection);
+    if (!m_server.checkAuthorization(connection)) {
         return;
     }
 
@@ -414,6 +437,56 @@ void Server::RequestHandler::handle(mg_connection *connection, bool hasData)
         break;
     }
     mg_printf(connection, ss.str().c_str());
+}
+
+Server::ApiListHandler::ApiListHandler(Server &server)
+    : m_server{server}
+{
+}
+
+bool Server::ApiListHandler::handleGet(CivetServer *, mg_connection *connection)
+{
+    if (!m_server.checkAuthorization(connection)) {
+        return true;
+    }
+
+    QJsonArray list;
+    for (const Extension *extension : m_server.m_extensionManager.extensions()) {
+        QJsonObject extensionObject;
+        extensionObject.insert("id", QString::fromStdString(extension->id()));
+        extensionObject.insert("name", extension->name());
+        extensionObject.insert("description", extension->description());
+        QJsonArray endpoints;
+        for (const Endpoint &endpoint : extension->endpoints()) {
+            QJsonObject endpointObject;
+            endpointObject.insert("name", QString::fromStdString(endpoint.name()));
+            QString type;
+            switch (endpoint.type()) {
+            case Endpoint::Type::Get:
+                type = "get";
+                break;
+            case Endpoint::Type::Post:
+                type = "post";
+                break;
+            case Endpoint::Type::Delete:
+                type = "delete";
+                break;
+            default:
+                break;
+            }
+            endpointObject.insert("type", type);
+            endpoints.append(endpointObject);
+        }
+        extensionObject.insert("endpoints", endpoints);
+        list.append(extensionObject);
+    }
+
+    std::stringstream ss;
+    ss << "HTTP/1.1 200 OK\r\n"
+       << "\r\n"
+       << QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
+    mg_printf(connection, ss.str().c_str());
+    return true;
 }
 
 }

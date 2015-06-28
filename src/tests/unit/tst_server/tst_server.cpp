@@ -289,6 +289,22 @@ private Q_SLOTS:
 
         QCOMPARE(reply->error(), QNetworkReply::NoError);
         QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_delete\",\"params\":{\"int\":\"3\",\"string\":\"test\"},\"type\":\"delete\"}"));
+
+        // API
+        QNetworkRequest apiRequest (QUrl("https://localhost:8080/api/list"));
+        apiRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(apiRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        document = QJsonDocument::fromJson(reply->readAll());
+        QVERIFY(document.isArray());
+        QCOMPARE(document.array().count(), 1);
+        const QJsonObject &extension = document.array().first().toObject();
+        QCOMPARE(extension.value("id").toString(), QString("test"));
     }
     void testUnauthorizedRequests()
     {
@@ -322,6 +338,15 @@ private Q_SLOTS:
 
         // Delete
         reply.reset(network.deleteResource(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_delete"))));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // API
+        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/api/list"))));
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
             QTest::qWait(100);
