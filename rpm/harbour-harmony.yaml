@@ -7,7 +7,6 @@ URL: https://github.com/SfietKonstantin/harmony
 License: BSD
 Sources:
 - '%{name}-%{version}.tar.bz2'
-- 'harmony.tgz'
 Description: |
   An experiment about running a webapplication 
   to expose phone information
@@ -19,12 +18,10 @@ PkgConfigBR:
 - Qt5Qml
 - Qt5Quick
 - Qt5Test
+- libssl
 - sailfishapp >= 0.0.10
 PkgBR:
-- nodejs-npm
 - coffeescript
-Requires:
-- nodejs
 - openssl
 QMakeOptions: 
 - CONFIG+=harmonydebug

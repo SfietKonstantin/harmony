@@ -19,7 +19,6 @@ Group:      Qt/Qt
 License:    BSD
 URL:        https://github.com/SfietKonstantin/harmony
 Source0:    %{name}-%{version}.tar.bz2
-Source1:    harmony.tgz
 Source100:  harbour-harmony.yaml
 Requires:   nodejs
 Requires:   openssl
@@ -28,8 +27,9 @@ BuildRequires:  pkgconfig(Qt5DBus)
 BuildRequires:  pkgconfig(Qt5Qml)
 BuildRequires:  pkgconfig(Qt5Quick)
 BuildRequires:  pkgconfig(Qt5Test)
+BuildRequires:  pkgconfig(libssl)
 BuildRequires:  pkgconfig(sailfishapp) >= 0.0.10
-BuildRequires:  nodejs-npm
+BuildRequires:  openssl
 BuildRequires:  coffeescript
 
 %description
@@ -54,8 +54,6 @@ A tester application to run the Node project
 
 %build
 # >> build pre
-npm install %{SOURCE1}
-cp -r node_modules/harmony/node_modules/ node/
 # << build pre
 
 %qtc_qmake5  \
@@ -64,121 +62,6 @@ cp -r node_modules/harmony/node_modules/ node/
 %qtc_make %{?_smp_mflags}
 
 # >> build post
-# Cleanups (Licenses and readme are removed ATM)
-rm -rf node/node_modules/.bin
-# async
-rm -f node/node_modules/async/.travis.yml
-rm -f node/node_modules/async/LICENSE
-rm -f node/node_modules/async/README.md
-# body-parser
-# dbus-native
-rm -rf node/node_modules/dbus-native/bin
-rm -rf node/node_modules/dbus-native/examples
-rm -rf node/node_modules/dbus-native/test
-rm -f node/node_modules/dbus-native/.npmignore
-rm -f node/node_modules/dbus-native/.travis.yml
-rm -f node/node_modules/dbus-native/CHANGELOG.md
-rm -f node/node_modules/dbus-native/LICENSE
-rm -f node/node_modules/dbus-native/README.md
-#   abstract-socket
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/build/abstract_socket.target.mk
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/build/binding.Makefile
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/build/config.gypi
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/build/Makefile
-rm -rf node/node_modules/dbus-native/node_modules/abstract-socket/build/Release/.deps
-rm -rf node/node_modules/dbus-native/node_modules/abstract-socket/build/Release/obj.target
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/build/Release/linker.lock
-rm -rf node/node_modules/dbus-native/node_modules/abstract-socket/src
-rm -rf node/node_modules/dbus-native/node_modules/abstract-socket/test
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/aclient.py
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/aserver.py
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/binding.gyp
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/README.md
-#     bindings
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/bindings/README.md
-#     nan
-rm -rf node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/nan/build
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/nan/.dntrc
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/nan/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/nan/nan.h
-rm -f node/node_modules/dbus-native/node_modules/abstract-socket/node_modules/nan/README.md
-#   event-stream
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/examples
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/readme.markdown
-#     duplexer
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/README.md
-#     from
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/from/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/from/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/LICENSE.APACHE2
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/LICENSE.MIT
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/duplexer/README.markdown
-#     map-stream
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/examples
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/map-stream/readme.markdown
-#     pause-stream
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/pause-stream/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/pause-stream/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/pause-stream/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/pause-stream/readme.markdown
-#     split
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/examples
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/split/readme.markdown
-#     stream-combiner
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/stream-combiner/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/stream-combiner/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/stream-combiner/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/stream-combiner/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/stream-combiner/README.md
-#     through
-rm -rf node/node_modules/dbus-native/node_modules/event-stream/node_modules/through/test
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/through/.travis.yml
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/through/LICENSE.APACHE2
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/through/LICENSE.MIT
-rm -f node/node_modules/dbus-native/node_modules/event-stream/node_modules/through/readme.markdown
-#   put
-rm -rf node/node_modules/dbus-native/node_modules/put/test
-rm -rf node/node_modules/dbus-native/node_modules/put/examples
-rm -f node/node_modules/dbus-native/node_modules/put/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/put/README.md
-#   xml2js
-rm -rf node/node_modules/dbus-native/node_modules/xml2js/src
-rm -rf node/node_modules/dbus-native/node_modules/xml2js/test
-rm -f node/node_modules/dbus-native/node_modules/xml2js/.npmignore
-rm -f node/node_modules/dbus-native/node_modules/xml2js/Cakefile
-rm -f node/node_modules/dbus-native/node_modules/xml2js/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/xml2js/README.md
-#     sax
-rm -rf node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/examples
-rm -rf node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/test
-rm -f node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/AUTHORS
-rm -f node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/LICENSE
-rm -f node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/LICENSE-W3C.html
-rm -f node/node_modules/dbus-native/node_modules/xml2js/node_modules/sax/README.md
-# ejs
-# express
-# express-jwt
-# jsonwebtoken
-# method-override
-# morgan
-# serve-favicon
 # << build post
 
 %install
