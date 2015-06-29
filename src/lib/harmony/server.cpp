@@ -37,7 +37,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QDebug>
+#include <QtCore/QLoggingCategory>
 #include "iauthentificationservice.h"
 #include "harmonyextension.h"
 #include "iextensionmanager.h"
@@ -116,7 +116,7 @@ class Server: public IServer
 {
 public:
     explicit Server(int port, IAuthentificationService &authentificationService,
-                    const IExtensionManager &extensionManager);
+                    const IExtensionManager &extensionManager, const std::string &publicFolder);
     int port() const override;
     bool start() override;
     void stop() override;
@@ -166,6 +166,7 @@ private:
     bool checkAuthorization(mg_connection *connection);
     std::unique_ptr<CivetServer> m_server {nullptr};
     int m_port {0};
+    std::string m_publicFolder {};
     IAuthentificationService &m_authentificationService;
     const IExtensionManager &m_extensionManager;
     PingHandler m_pingHandler {};
@@ -175,8 +176,8 @@ private:
 };
 
 Server::Server(int port, IAuthentificationService &authentificationService,
-               const IExtensionManager &extensionManager)
-    : m_port{port}, m_authentificationService{authentificationService}
+               const IExtensionManager &extensionManager, const std::string &publicFolder)
+    : m_port{port}, m_publicFolder{publicFolder}, m_authentificationService{authentificationService}
     , m_extensionManager{extensionManager} , m_authentificationHandler{*this}
     , m_apiListHandler{*this}
 {
@@ -202,14 +203,22 @@ bool Server::start()
         const QByteArray &certificatePath = getCertificateFilePath();
 
 #if HARMONY_DEBUG
-        qDebug() << "Starting harmony server on port" << m_port;
-        qDebug() << "Using certificate from" << certificatePath;
+        qCWarning(QLoggingCategory("server")) << "Starting harmony server on port" << m_port;
+        qCWarning(QLoggingCategory("server")) << "Using certificate from" << certificatePath;
 #endif
 
-        const char * options[] = { "listening_ports", port.c_str(),
-                                   "ssl_certificate", certificatePath.data(),
-                                   nullptr };
-        m_server.reset(new EnhancedCivetServer(options));
+        const char *optionsNoPublic[] = {"listening_ports", port.c_str(),
+                                         "ssl_certificate", certificatePath.data(),
+                                         nullptr };
+        const char *optionsPublic[] = {"listening_ports", port.c_str(),
+                                       "ssl_certificate", certificatePath.data(),
+                                       "document_root", m_publicFolder.c_str(),
+                                       nullptr };
+        if (m_publicFolder.empty()) {
+            m_server.reset(new EnhancedCivetServer(optionsNoPublic));
+        } else {
+            m_server.reset(new EnhancedCivetServer(optionsPublic));
+        }
         m_server->addHandler("/ping", m_pingHandler);
         m_server->addHandler("/authenticate", m_authentificationHandler);
         for (RequestHandler &handler : m_handlers) {
@@ -283,7 +292,7 @@ void Server::writeAuthorizationRequired(mg_connection *connection)
     std::stringstream ss;
     ss << "HTTP/1.1 401 Unauthorized\r\n"
        << "\r\n"
-       << "Wrong authentification code";
+       << "Unauthorized";
     mg_printf(connection, ss.str().c_str());
 }
 
@@ -305,9 +314,10 @@ bool Server::checkAuthorization(mg_connection *connection)
 }
 
 IServer::Ptr IServer::create(int port, IAuthentificationService &authentificationService,
-                             const IExtensionManager &extensionManager)
+                             const IExtensionManager &extensionManager,
+                             const std::string &publicFolder)
 {
-    return Ptr(new Server(port, authentificationService, extensionManager));
+    return Ptr(new Server(port, authentificationService, extensionManager, publicFolder));
 }
 
 bool Server::PingHandler::handleGet(CivetServer *, mg_connection *connection)
@@ -327,20 +337,29 @@ Server::AuthentificationHandler::AuthentificationHandler(Server &server)
 
 bool Server::AuthentificationHandler::handlePost(CivetServer *, mg_connection *connection)
 {
-    std::string code;
-    if (CivetServer::getParam(EnhancedCivetServer::getPostData(connection), "password", code)) {
-        const JsonWebToken token = m_server.m_authentificationService.authenticate(code);
+    std::string data = EnhancedCivetServer::getPostData(connection);
+    QJsonDocument dataDocument = QJsonDocument::fromJson(QByteArray::fromStdString(data));
+    if (dataDocument.isObject()) {
+        const QJsonObject &object = dataDocument.object();
+        const QString &code = object.value("password").toString();
+
+        const JsonWebToken token = m_server.m_authentificationService.authenticate(code.toStdString());
         if (!token.isNull()) {
             std::stringstream ss;
             ss << "HTTP/1.1 200 OK\r\n"
                << "\r\n"
-               << m_server.m_authentificationService.hashJwt(token).data();
+               << "{\"token\":\"" << m_server.m_authentificationService.hashJwt(token).data()
+               << "\"}";
             mg_printf(connection, ss.str().c_str());
             return true;
         }
     }
 
-    writeAuthorizationRequired(connection);
+    std::stringstream ss;
+    ss << "HTTP/1.1 401 Unauthorized\r\n"
+       << "\r\n"
+       << "Wrong authentification code";
+    mg_printf(connection, ss.str().c_str());
     return true;
 }
 

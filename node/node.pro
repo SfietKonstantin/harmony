@@ -1,16 +1,20 @@
 TEMPLATE = aux
 
 OTHER_FILES += package.json \
-    app.coffee \
-    authmanager.coffee \
-    dbusinerface.coffee \
-    routes.coffee \
     public/css/styles.css \
     public/index.html \
-    public/main.coffee \
-    public/pages/home.html \
+    public/main.js \
+    public/main-config.coffee \
+    public/modules/home/views/home.html \
     public/modules/login/login.coffee \
-    public/modules/login/views/login.html
+    public/modules/login/views/login.html \
+    public/modules/settings/settings.coffee \
+    public/modules/settings/settings-debug.coffee \
+    public/modules/settings/views/settings.html \
+    public/modules/settings/views/settings-general.html \
+    public/modules/settings/views/settings-debug.html \
+    public/modules/test/test.coffee \
+    public/modules/test/views/test.html
 
 system($$PWD/build.sh)
 

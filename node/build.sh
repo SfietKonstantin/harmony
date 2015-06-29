@@ -1,12 +1,5 @@
 #!/bin/sh
 
-# Build server files
-coffee -c *.coffee
-
-pushd lib > /dev/null
-coffee -c *.coffee
-popd > /dev/null
-
 # Build client files
 pushd public > /dev/null
 coffee -c *.coffee
@@ -21,9 +14,4 @@ for d in *; do
 done
 popd > /dev/null
 
-popd > /dev/null
-
-# Build test files
-pushd tests > /dev/null
-coffee -c *.coffee
 popd > /dev/null

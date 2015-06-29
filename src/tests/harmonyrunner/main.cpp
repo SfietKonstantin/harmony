@@ -31,21 +31,23 @@
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QtPlugin>
-#include <QtCore/QDebug>
-#include <QtCore/QFile>
-#include <serviceprovider.h>
-#include <certificatemanager.h>
-#include <nodemanager.h>
-#include <pluginmanager.h>
+#include <QtCore/QLoggingCategory>
+#include <QtCore/QDir>
+#include <QtCore/QUuid>
+#include <iauthentificationservice.h>
+#include <iextensionmanager.h>
+#include <iserver.h>
 #include <iostream>
 #include <signal.h>
+
+using namespace harmony;
 
 Q_IMPORT_PLUGIN(HarmonyTestPlugin)
 
 void help()
 {
     std::cout << "Usage:" << std::endl
-              << "  harmonyrunner path/to/script" << std::endl
+              << "  harmonyrunner path/to/public" << std::endl
               << std::endl
               << "Run the Harmony daemon in commandline." << std::endl;
 }
@@ -72,33 +74,22 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const QString file = arguments.at(1);
-    if (!QFile(file).exists()) {
+    const QString dir = arguments.at(1);
+    if (!QDir(dir).exists()) {
         help();
         return 1;
     }
 
-    HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
-    if (!certificateManager->hasCertificates()) {
-        certificateManager->createCertificates();
-    }
-    PluginManager::Ptr pluginManager = PluginManager::create();
-    QList<HarmonyExtension *> plugins = pluginManager->plugins();
-    qDebug() << "Loaded plugins:" << plugins.count();
-    for (HarmonyExtension *plugin : plugins) {
-        qDebug() << plugin->id() << ":" << plugin->name();
-    }
-    HarmonyServiceProvider::Ptr serviceProvider = HarmonyServiceProvider::create(certificateManager,
-                                                                                 pluginManager);
-    NodeManager::Ptr nodeManager = NodeManager::create();
-    NodeManager *nodeManagerData = nodeManager.data();
-    QObject::connect(nodeManagerData, &NodeManager::statusChanged, [nodeManagerData]{
-        qDebug() << "NodeManager status changed:" << nodeManagerData->status();
-        if (nodeManagerData->status() == NodeManager::Stopped) {
-            QCoreApplication::instance()->exit();
-        }
-    });
-    nodeManager->startNode(file);
+    IAuthentificationService::Ptr authentificationService = IAuthentificationService::create(QUuid::createUuid().toByteArray());
+    IExtensionManager::Ptr extensionManager = IExtensionManager::create();
+    IServer::Ptr server = IServer::create(8080, *authentificationService, *extensionManager,
+                                          dir.toStdString());
 
+    std::vector<Extension *> extensions = extensionManager->extensions();
+    qCWarning(QLoggingCategory("harmony-runner")) << "Loaded extensions:" << extensions.size();
+    for (Extension *extension : extensions) {
+        qCWarning(QLoggingCategory("harmony-runner")) << QString::fromStdString(extension->id()) << ":" << extension->name();
+    }
+    server->start();
     return app.exec();
 }

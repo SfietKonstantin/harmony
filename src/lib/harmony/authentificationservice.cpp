@@ -33,7 +33,7 @@
 #include <iomanip>
 #include <sstream>
 #include <chrono>
-#include <QtCore/QDebug>
+#include <QtCore/QLoggingCategory>
 #include <QtCore/QUuid>
 
 static const int PASSWORD_LENGTH = 8;
@@ -147,7 +147,7 @@ void AuthentificationService::generatePassword(bool init)
     ss << std::setw(PASSWORD_LENGTH) << std::setfill('0') << random();
     std::string password = ss.str();
     if (m_password != password) {
-        m_password = ss.str();
+        m_password = password;
         if (m_passwordChangedCallback && !init) {
             m_passwordChangedCallback(password);
         }
@@ -155,7 +155,7 @@ void AuthentificationService::generatePassword(bool init)
     m_passwordAttempts = PASSWORD_ATTEMPTS_MAX;
 
 #ifdef HARMONY_DEBUG
-    qDebug() << "Current password:" << QString::fromStdString(m_password);
+    qCWarning(QLoggingCategory("auth-service")) << "Current password:" << QString::fromStdString(m_password);
 #endif
 }
 

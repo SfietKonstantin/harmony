@@ -3,7 +3,7 @@ settingsDebug = angular.module 'Settings.Debug', []
 settingsDebug.controller 'SettingsDebugController', ($scope, $http) ->
     $scope.havePlugins = false
     $http({
-        url: '/api/plugins'
+        url: '/api/list'
         method: 'GET'
     }).success((data, status, header, config) ->
         $scope.plugins = data
