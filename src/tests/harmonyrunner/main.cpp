@@ -42,7 +42,7 @@
 
 using namespace harmony;
 
-Q_IMPORT_PLUGIN(HarmonyTestPlugin)
+Q_IMPORT_PLUGIN(HarmonyTestExtension)
 
 void help()
 {

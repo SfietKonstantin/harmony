@@ -35,6 +35,8 @@
 #include <chrono>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QUuid>
+#include <atomic>
+#include <mutex>
 
 static const int PASSWORD_LENGTH = 8;
 static constexpr int PASSWORD_MAX = std::pow(10, PASSWORD_LENGTH) - 1;
@@ -54,12 +56,15 @@ public:
     QByteArray hashJwt(const JsonWebToken &token) override;
     bool isAuthorized(const QByteArray &jwt) override;
 private:
+    bool comparePassword(const std::string &password) const;
+    void setPassword(const std::string &password, bool init);
     void decrementPasswordAttempts();
     void generatePassword(bool init = false);
-    int m_passwordAttempts {0};
+    std::atomic_int m_passwordAttempts {0};
     std::string m_password {};
-    QByteArray m_key {};
-    PasswordChangedCallback_t m_passwordChangedCallback {};
+    const QByteArray m_key {};
+    const PasswordChangedCallback_t m_passwordChangedCallback {};
+    mutable std::mutex m_mutex {};
 };
 
 AuthentificationService::AuthentificationService(const QByteArray &key,
@@ -71,12 +76,13 @@ AuthentificationService::AuthentificationService(const QByteArray &key,
 
 std::string AuthentificationService::password() const
 {
+    std::lock_guard<std::mutex> lock (m_mutex);
     return m_password;
 }
 
 JsonWebToken AuthentificationService::authenticate(const std::string &password)
 {
-    if (password != m_password) {
+    if (!comparePassword(password)) {
         decrementPasswordAttempts();
         return JsonWebToken();
     }
@@ -117,6 +123,23 @@ bool AuthentificationService::isAuthorized(const QByteArray &jwt)
     return true;
 }
 
+bool AuthentificationService::comparePassword(const std::string &password) const
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    return m_password == password;
+}
+
+void AuthentificationService::setPassword(const std::string &password, bool init)
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    if (m_password != password) {
+        m_password = password;
+        if (m_passwordChangedCallback && !init) {
+            m_passwordChangedCallback(password);
+        }
+    }
+}
+
 void AuthentificationService::decrementPasswordAttempts()
 {
     --m_passwordAttempts;
@@ -146,12 +169,8 @@ void AuthentificationService::generatePassword(bool init)
     std::stringstream ss;
     ss << std::setw(PASSWORD_LENGTH) << std::setfill('0') << random();
     std::string password = ss.str();
-    if (m_password != password) {
-        m_password = password;
-        if (m_passwordChangedCallback && !init) {
-            m_passwordChangedCallback(password);
-        }
-    }
+
+    setPassword(password, init);
     m_passwordAttempts = PASSWORD_ATTEMPTS_MAX;
 
 #ifdef HARMONY_DEBUG

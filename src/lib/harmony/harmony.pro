@@ -14,14 +14,16 @@ HEADERS += \
     jsonwebtoken.h \
     iauthentificationservice.h \
     harmonyextension.h \
-    iextensionmanager.h
+    iextensionmanager.h \
+    private/enhancedcivetserver.h
 
 SOURCES += \
     server.cpp \
     jsonwebtoken.cpp \
     authentificationservice.cpp \
     harmonyextension.cpp \
-    extensionmanager.cpp
+    extensionmanager.cpp \
+    private/enhancedcivetserver.cpp
 
 RESOURCES += \
     harmony.qrc

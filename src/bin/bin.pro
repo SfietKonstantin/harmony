@@ -1,22 +1,21 @@
 TEMPLATE = app
 TARGET = harbour-harmony
 
-QT = core gui dbus quick
+QT = core gui quick
 
 include(../config.pri)
 
 CONFIG += c++11
-!CONFIG(desktop) {
-    CONFIG += sailfishapp
-} else {
+CONFIG(desktop) {
     DEFINES += DESKTOP
     RESOURCES += res.qrc
+} else {
+    CONFIG += sailfishapp
 }
 
 INCLUDEPATH += ../lib/harmony
-LIBS += -L../lib/harmony -lharmony
-
-HEADERS += \
+LIBS += -L../lib/harmony -lharmony \
+    -L../lib/civet -lcivet
 
 SOURCES += \
     main.cpp

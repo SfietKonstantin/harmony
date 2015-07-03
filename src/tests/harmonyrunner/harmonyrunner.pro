@@ -7,7 +7,7 @@ include(../../config.pri)
 include(../../lib/civet/civet-deps.pri)
 
 INCLUDEPATH += ../../lib/harmony
-LIBS += -L../../plugins/test -lharmonytestplugin \
+LIBS += -L../../plugins/test -lharmonytestextension \
     -L../../lib/harmony -lharmony \
     -L../../lib/civet -lcivet
 

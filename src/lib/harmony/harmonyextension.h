@@ -57,8 +57,8 @@ public:
     Type type() const;
     std::string name() const;
 private:
-    Type m_type {Type::Invalid};
-    std::string m_name {};
+    const Type m_type {Type::Invalid};
+    const std::string m_name {};
 };
 
 class Reply
@@ -79,11 +79,16 @@ public:
     std::string value() const;
     QJsonDocument valueJson() const;
 private:
-    int m_status {200};
-    Type m_type {Type::Invalid};
-    std::string m_value {};
+    const int m_status {200};
+    const Type m_type {Type::Invalid};
+    const std::string m_value {};
 };
 
+/**
+ * @brief Extension interface for Harmony
+ *
+ * This interface is used to extend Harmony.
+ */
 class IExtension
 {
 public:
@@ -109,6 +114,8 @@ class Extension : public QObject, public IExtension
     Q_INTERFACES(harmony::IExtension)
 public:
     explicit Extension(QObject *parent = 0);
+Q_SIGNALS:
+    void broadcast(const QString &data) const;
 };
 
 }

@@ -49,7 +49,7 @@ public:
     virtual void stop() = 0;
     // Do not create multiple servers, not supported by civetweb
     static Ptr create(int port, IAuthentificationService &authentificationService,
-                      const IExtensionManager &extensionManager,
+                      IExtensionManager &extensionManager,
                       const std::string &publicFolder = std::string());
 };
 

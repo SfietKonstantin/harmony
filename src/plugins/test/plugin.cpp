@@ -34,7 +34,7 @@
 
 using namespace harmony;
 
-class HarmonyTestPlugin: public Extension
+class HarmonyTestExtension: public Extension
 {
     Q_OBJECT
 #ifndef SONAR_RUN
@@ -62,12 +62,23 @@ public:
         endpoints.push_back(Endpoint(Endpoint::Type::Get, "test_get"));
         endpoints.push_back(Endpoint(Endpoint::Type::Post, "test_post"));
         endpoints.push_back(Endpoint(Endpoint::Type::Delete, "test_delete"));
+        endpoints.push_back(Endpoint(Endpoint::Type::Get, "test_ws"));
         return endpoints;
+    }
+
+    Reply handleWsRequest() const
+    {
+        emit broadcast("Hello world");
+        return Reply(QJsonDocument(QJsonObject()));
     }
 
     Reply handleRequest(const Endpoint &endpoint, const QUrlQuery &params,
                         const QJsonDocument &body) const override
     {
+        if (endpoint.name() == "test_ws" && endpoint.type() == Endpoint::Type::Get) {
+            return handleWsRequest();
+        }
+
         QJsonObject returned {};
         QString type {};
         switch (endpoint.type()) {

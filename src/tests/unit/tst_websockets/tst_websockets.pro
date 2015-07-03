@@ -1,7 +1,7 @@
 TEMPLATE = app
-TARGET = tst_server
+TARGET = tst_websockets
 
-QT = core network testlib
+QT = core network testlib websockets
 
 include(../../../config.pri)
 include(../../../lib/civet/civet-deps.pri)
@@ -11,4 +11,4 @@ LIBS += -L../../../plugins/test -lharmonytestextension \
     -L../../../lib/harmony -lharmony \
     -L../../../lib/civet -lcivet
 
-SOURCES += tst_server.cpp
+SOURCES += tst_websockets.cpp

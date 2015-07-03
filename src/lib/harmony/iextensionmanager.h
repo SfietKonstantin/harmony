@@ -41,9 +41,17 @@ namespace harmony
 class IExtensionManager
 {
 public:
+    class ICallback
+    {
+    public:
+        virtual ~ICallback() {}
+        virtual void operator()(const QByteArray &data) const = 0;
+    };
     using Ptr = std::unique_ptr<IExtensionManager>;
     virtual ~IExtensionManager() {}
     virtual std::vector<Extension *> extensions() const = 0;
+    virtual void addCallback(ICallback &callback) = 0;
+    virtual void removeCallback(ICallback &callback) = 0;
     static Ptr create();
 };
 

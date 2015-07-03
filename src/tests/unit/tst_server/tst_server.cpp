@@ -41,7 +41,7 @@
 #include <iauthentificationservice.h>
 #include <iextensionmanager.h>
 
-Q_IMPORT_PLUGIN(HarmonyTestPlugin)
+Q_IMPORT_PLUGIN(HarmonyTestExtension)
 
 using namespace harmony;
 
@@ -104,10 +104,9 @@ private Q_SLOTS:
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
         postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
-        QUrlQuery urlQuery;
-        urlQuery.addQueryItem("password", QString::fromStdString(as->password()));
-        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        QJsonObject object;
+        object.insert("password", QString::fromStdString(as->password()));
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
         reply.reset(network.post(postRequest, query));
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
@@ -130,9 +129,9 @@ private Q_SLOTS:
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
         postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-        QUrlQuery urlQuery;
-        urlQuery.addQueryItem("password", "test");
-        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        QJsonObject object;
+        object.insert("password", "test");
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
 
         reply.reset(network.post(postRequest, query));
         handleSslErrors(*reply);
@@ -162,9 +161,9 @@ private Q_SLOTS:
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
         postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-        QUrlQuery urlQuery;
-        urlQuery.addQueryItem("password", "test");
-        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        QJsonObject object;
+        object.insert("password", "test");
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
 
         reply1.reset(network.post(postRequest, query));
         handleSslErrors(*reply1);
@@ -190,9 +189,9 @@ private Q_SLOTS:
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
         postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-        QUrlQuery urlQuery;
-        urlQuery.addQueryItem("password", QString::fromStdString(as->password()));
-        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        QJsonObject object;
+        object.insert("password", QString::fromStdString(as->password()));
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
 
         std::vector<std::unique_ptr<QNetworkReply>> replies;
 
@@ -232,10 +231,9 @@ private Q_SLOTS:
         // Authorization
         QNetworkRequest authorizationRequest (QUrl("https://localhost:8080/authenticate"));
         authorizationRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-
-        QUrlQuery urlQuery;
-        urlQuery.addQueryItem("password", QString::fromStdString(as->password()));
-        QByteArray query = urlQuery.toString(QUrl::FullyEncoded).toLocal8Bit();
+        QJsonObject object;
+        object.insert("password", QString::fromStdString(as->password()));
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
         reply.reset(network.post(authorizationRequest, query));
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
@@ -243,8 +241,9 @@ private Q_SLOTS:
         }
         QCOMPARE(reply->error(), QNetworkReply::NoError);
         QByteArray token {"Bearer "};
-        token.append(reply->readAll());
 
+        QJsonDocument result {QJsonDocument::fromJson(reply->readAll())};
+        token.append(result.object().value("token").toString());
 
         // Get
         QNetworkRequest getRequest (QUrl("https://localhost:8080/api/test/test_get?string=test&int=3"));
@@ -338,6 +337,58 @@ private Q_SLOTS:
 
         // Delete
         reply.reset(network.deleteResource(QNetworkRequest(QUrl("https://localhost:8080/api/test/test_delete"))));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // API
+        reply.reset(network.get(QNetworkRequest(QUrl("https://localhost:8080/api/list"))));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+    }
+    void testUnauthorizedRequests2()
+    {
+        QNetworkAccessManager network {};
+        std::unique_ptr<QNetworkReply> reply {};
+
+        IAuthentificationService::Ptr as = IAuthentificationService::create("test");
+        IExtensionManager::Ptr em = IExtensionManager::create();
+        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        QVERIFY(server->start());
+
+        // Get
+        QNetworkRequest getRequest (QUrl("https://localhost:8080/api/test/test_get"));
+        getRequest.setRawHeader("Authorization", "Bearer test");
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // Post
+        QNetworkRequest postRequest (QUrl("https://localhost:8080/api/test/test_post"));
+        postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        postRequest.setRawHeader("Authorization", "Bearer test");
+        reply.reset(network.post(postRequest, "{}"));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+
+        // Delete
+        QNetworkRequest deleteRequest (QUrl("https://localhost:8080/api/test/test_delete"));
+        deleteRequest.setRawHeader("Authorization", "Bearer test");
         handleSslErrors(*reply);
         while (!reply->isFinished()) {
             QTest::qWait(100);

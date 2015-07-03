@@ -33,9 +33,25 @@
 #include <harmonyextension.h>
 #include <iextensionmanager.h>
 
-Q_IMPORT_PLUGIN(HarmonyTestPlugin)
+Q_IMPORT_PLUGIN(HarmonyTestExtension)
 
 using namespace harmony;
+
+class Callback: public IExtensionManager::ICallback
+{
+public:
+    explicit Callback() {}
+    const QByteArray & data() const { return m_data; }
+    int count() const { return m_count; }
+    void operator()(const QByteArray &data) const override
+    {
+        m_data = data;
+        ++m_count;
+    }
+private:
+    mutable QByteArray m_data;
+    mutable int m_count {0};
+};
 
 class TstHarmonyExtension : public QObject
 {
@@ -44,6 +60,7 @@ private Q_SLOTS:
     void testEndpoint();
     void testReply();
     void testExtensionManager();
+    void testExtensionManagerObservers();
 };
 
 void TstHarmonyExtension::testEndpoint()
@@ -93,18 +110,46 @@ void TstHarmonyExtension::testReply()
 void TstHarmonyExtension::testExtensionManager()
 {
     IExtensionManager::Ptr extensionManager = IExtensionManager::create();
+    Callback callback;
+    extensionManager->addCallback(callback);
     std::vector<Extension *> extensions = extensionManager->extensions();
     QCOMPARE(static_cast<int>(extensions.size()), 1);
 
-    const Extension *testExtension = *extensions.begin();
+    Extension *testExtension = *extensions.begin();
     QCOMPARE(testExtension->id(), std::string("test"));
     QCOMPARE(testExtension->name(), QString("Test"));
     QCOMPARE(testExtension->description(), QString("The Harmony test plugin."));
 
     const std::vector<Endpoint> &endpoints = testExtension->endpoints();
-    QCOMPARE(static_cast<int>(endpoints.size()), 3);
+    QCOMPARE(static_cast<int>(endpoints.size()), 4);
+
+    // Test the broadcasting capabilities
+    QSignalSpy spy (testExtension, SIGNAL(broadcast(QString)));
+    testExtension->handleRequest(Endpoint(Endpoint::Type::Get, "test_ws"), QUrlQuery(), QJsonDocument());
+
+    QCOMPARE(callback.data(), QByteArray("Hello world"));
+    QCOMPARE(callback.count(), 1);
+    QCOMPARE(spy.count(), 1);
+    const QVariantList &args = spy.first();
+    QCOMPARE(args.count(), 1);
+    QCOMPARE(args.first().toString(), QString("Hello world"));
 }
 
+void TstHarmonyExtension::testExtensionManagerObservers()
+{
+    IExtensionManager::Ptr extensionManager = IExtensionManager::create();
+    Callback callback;
+    extensionManager->removeCallback(callback);
+    extensionManager->addCallback(callback);
+    extensionManager->addCallback(callback);
+
+    std::vector<Extension *> extensions = extensionManager->extensions();
+    Extension *testExtension = *extensions.begin();
+
+    testExtension->handleRequest(Endpoint(Endpoint::Type::Get, "test_ws"), QUrlQuery(), QJsonDocument());
+    QCOMPARE(callback.data(), QByteArray("Hello world"));
+    QCOMPARE(callback.count(), 1);
+}
 
 QTEST_MAIN(TstHarmonyExtension)
 

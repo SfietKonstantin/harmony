@@ -38,6 +38,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QLoggingCategory>
+#include "private/enhancedcivetserver.h"
 #include "iauthentificationservice.h"
 #include "harmonyextension.h"
 #include "iextensionmanager.h"
@@ -45,78 +46,16 @@
 static const char *CERTIFICATE_DIR = "ssl";
 static const char *CERTIFICATE = "harmony.pem";
 
-namespace harmony
-{
+namespace harmony {
 
-class EnhancedCivetServer: public CivetServer
-{
-public:
-    EnhancedCivetServer(const char **options, const struct mg_callbacks *callbacks = 0);
-    static std::string getParameters(mg_connection *connection);
-    static std::string getPostData(mg_connection *connection);
-};
-
-EnhancedCivetServer::EnhancedCivetServer(const char **options, const mg_callbacks *callbacks)
-    : CivetServer(options, callbacks)
-{
-}
-
-std::string EnhancedCivetServer::getParameters(mg_connection *connection)
-{
-    const struct mg_request_info *ri = mg_get_request_info(connection);
-    if (!ri->query_string) {
-        return std::string();
-    }
-    return std::string(ri->query_string);
-}
-
-// Taking inspiration from getParam
-std::string EnhancedCivetServer::getPostData(mg_connection *connection)
-{
-    const char *formParams = NULL;
-    const struct mg_request_info *ri = mg_get_request_info(connection);
-    assert(ri != NULL);
-    EnhancedCivetServer *me = static_cast<EnhancedCivetServer *>(ri->user_data);
-    assert(me != NULL);
-    mg_lock_context(me->context);
-    CivetConnection &conobj = me->connections[connection];
-    mg_lock_connection(connection);
-    mg_unlock_context(me->context);
-
-    if (conobj.postData != NULL) {
-        formParams = conobj.postData;
-    } else {
-        const char *con_len_str = mg_get_header(connection, "Content-Length");
-        if (con_len_str) {
-            unsigned long con_len = atoi(con_len_str);
-            if (con_len > 0) {
-                // Add one extra character: in case the post-data is a text, it
-                // is required as 0-termination.
-                // Do not increment con_len, since the 0 terminating is not part
-                // of the content (text or binary).
-                conobj.postData = (char *)malloc(con_len + 1);
-                if (conobj.postData != NULL) {
-                    // malloc may fail for huge requests
-                    mg_read(connection, conobj.postData, con_len);
-                    conobj.postData[con_len] = 0;
-                    formParams = conobj.postData;
-                    conobj.postDataLen = con_len;
-                }
-            }
-        }
-    }
-    mg_unlock_connection(connection);
-    if (!formParams) {
-        return std::string();
-    }
-    return std::string(formParams);
-}
+using CivetWebSocketHandler = private_impl::CivetWebSocketHandler;
+using EnhancedCivetServer = private_impl::EnhancedCivetServer;
 
 class Server: public IServer
 {
 public:
     explicit Server(int port, IAuthentificationService &authentificationService,
-                    const IExtensionManager &extensionManager, const std::string &publicFolder);
+                    IExtensionManager &extensionManager, const std::string &publicFolder);
     int port() const override;
     bool start() override;
     void stop() override;
@@ -158,28 +97,61 @@ private:
         explicit ApiListHandler(Server &server);
         bool handleGet(CivetServer *, mg_connection *connection) override;
     private:
+        std::string m_cache;
         Server &m_server;
+    };
+    class WebSocketHandler: public CivetWebSocketHandler
+    {
+    public:
+        explicit WebSocketHandler(Server &server);
+        bool handleConnect(EnhancedCivetServer *server, const mg_connection *connection);
+        void handleReady(EnhancedCivetServer *server, mg_connection *connection);
+        bool handleData(EnhancedCivetServer *server, mg_connection *connection, int bits,
+                        const char *data, size_t len);
+        void handleClose(EnhancedCivetServer *server, const mg_connection *connection);
+    private:
+        Server &m_server;
+    };
+    class WebSocketContainer: public IExtensionManager::ICallback
+    {
+    public:
+        explicit WebSocketContainer(IExtensionManager &extensionManager, Server &server);
+        ~WebSocketContainer();
+        void addSocket(mg_connection *socket);
+        void removeSocket(mg_connection *socket);
+        void clear();
+        void operator()(const QByteArray &data) const;
+    private:
+        IExtensionManager &m_extensionManager;
+        Server &m_server;
+        std::set<mg_connection *> m_sockets {};
+        mutable std::mutex m_mutex {};
     };
 
     static QByteArray getCertificateFilePath();
     static void writeAuthorizationRequired(mg_connection *connection);
     bool checkAuthorization(mg_connection *connection);
-    std::unique_ptr<CivetServer> m_server {nullptr};
-    int m_port {0};
-    std::string m_publicFolder {};
+
+    std::unique_ptr<EnhancedCivetServer> m_server {nullptr};
+
+    const int m_port {0};
+    const std::string m_publicFolder {};
     IAuthentificationService &m_authentificationService;
     const IExtensionManager &m_extensionManager;
+    WebSocketContainer m_webSocketContainer;
+
     PingHandler m_pingHandler {};
     AuthentificationHandler m_authentificationHandler;
     std::vector<RequestHandler> m_handlers {};
     ApiListHandler m_apiListHandler;
+    WebSocketHandler m_webSocketHandler;
 };
 
 Server::Server(int port, IAuthentificationService &authentificationService,
-               const IExtensionManager &extensionManager, const std::string &publicFolder)
+               IExtensionManager &extensionManager, const std::string &publicFolder)
     : m_port{port}, m_publicFolder{publicFolder}, m_authentificationService{authentificationService}
-    , m_extensionManager{extensionManager} , m_authentificationHandler{*this}
-    , m_apiListHandler{*this}
+    , m_extensionManager{extensionManager}, m_webSocketContainer{extensionManager, *this}
+    , m_authentificationHandler{*this}, m_apiListHandler{*this}, m_webSocketHandler{*this}
 {
     for (const Extension *extension : m_extensionManager.extensions()) {
         for (const Endpoint &endpoint : extension->endpoints()) {
@@ -225,6 +197,7 @@ bool Server::start()
             m_server->addHandler(handler.endpoint(), handler);
         }
         m_server->addHandler("/api/list", m_apiListHandler);
+        m_server->addWebSocketHandler("/api/ws", &m_webSocketHandler);
     } catch (const CertificateException &e) {
 #if HARMONY_DEBUG
         qWarning() << "Exception when creating certificate:" << e.what();
@@ -249,6 +222,7 @@ bool Server::start()
 void Server::stop()
 {
     m_server.reset();
+    m_webSocketContainer.clear();
 }
 
 QByteArray Server::getCertificateFilePath()
@@ -314,7 +288,7 @@ bool Server::checkAuthorization(mg_connection *connection)
 }
 
 IServer::Ptr IServer::create(int port, IAuthentificationService &authentificationService,
-                             const IExtensionManager &extensionManager,
+                             IExtensionManager &extensionManager,
                              const std::string &publicFolder)
 {
     return Ptr(new Server(port, authentificationService, extensionManager, publicFolder));
@@ -370,27 +344,21 @@ Server::RequestHandler::RequestHandler(Server &server, const Extension &extensio
 
 bool Server::RequestHandler::handleGet(CivetServer *, mg_connection *connection)
 {
-    if (m_endpoint.type() != Endpoint::Type::Get) {
-        return false;
-    }
+    assert(m_endpoint.type() == Endpoint::Type::Get);
     handle(connection, false);
     return true;
 }
 
 bool Server::RequestHandler::handlePost(CivetServer *, mg_connection *connection)
 {
-    if (m_endpoint.type() != Endpoint::Type::Post) {
-        return false;
-    }
+    assert(m_endpoint.type() == Endpoint::Type::Post);
     handle(connection, true);
     return true;
 }
 
 bool Server::RequestHandler::handleDelete(CivetServer *, mg_connection *connection)
 {
-    if (m_endpoint.type() != Endpoint::Type::Delete) {
-        return false;
-    }
+    assert(m_endpoint.type() == Endpoint::Type::Delete);
     handle(connection, false);
     return true;
 }
@@ -469,43 +437,129 @@ bool Server::ApiListHandler::handleGet(CivetServer *, mg_connection *connection)
         return true;
     }
 
-    QJsonArray list;
-    for (const Extension *extension : m_server.m_extensionManager.extensions()) {
-        QJsonObject extensionObject;
-        extensionObject.insert("id", QString::fromStdString(extension->id()));
-        extensionObject.insert("name", extension->name());
-        extensionObject.insert("description", extension->description());
-        QJsonArray endpoints;
-        for (const Endpoint &endpoint : extension->endpoints()) {
-            QJsonObject endpointObject;
-            endpointObject.insert("name", QString::fromStdString(endpoint.name()));
-            QString type;
-            switch (endpoint.type()) {
-            case Endpoint::Type::Get:
-                type = "get";
-                break;
-            case Endpoint::Type::Post:
-                type = "post";
-                break;
-            case Endpoint::Type::Delete:
-                type = "delete";
-                break;
-            default:
-                break;
+    if (m_cache.empty()) {
+
+        QJsonArray list;
+        for (const Extension *extension : m_server.m_extensionManager.extensions()) {
+            QJsonObject extensionObject;
+            extensionObject.insert("id", QString::fromStdString(extension->id()));
+            extensionObject.insert("name", extension->name());
+            extensionObject.insert("description", extension->description());
+            QJsonArray endpoints;
+            for (const Endpoint &endpoint : extension->endpoints()) {
+                QJsonObject endpointObject;
+                endpointObject.insert("name", QString::fromStdString(endpoint.name()));
+                QString type;
+                switch (endpoint.type()) {
+                case Endpoint::Type::Get:
+                    type = "get";
+                    break;
+                case Endpoint::Type::Post:
+                    type = "post";
+                    break;
+                case Endpoint::Type::Delete:
+                    type = "delete";
+                    break;
+                default:
+                    break;
+                }
+                endpointObject.insert("type", type);
+                endpoints.append(endpointObject);
             }
-            endpointObject.insert("type", type);
-            endpoints.append(endpointObject);
+            extensionObject.insert("endpoints", endpoints);
+            list.append(extensionObject);
         }
-        extensionObject.insert("endpoints", endpoints);
-        list.append(extensionObject);
+
+        std::stringstream ss;
+        ss << "HTTP/1.1 200 OK\r\n"
+           << "\r\n"
+           << QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
+        m_cache = ss.str();
+    }
+    mg_printf(connection, m_cache.c_str());
+    return true;
+}
+
+Server::WebSocketHandler::WebSocketHandler(Server &server)
+    : m_server{server}
+{
+}
+
+bool Server::WebSocketHandler::handleConnect(EnhancedCivetServer *server,
+                                             const mg_connection *connection)
+{
+    Q_UNUSED(server);
+    Q_UNUSED(connection);
+    return true;
+}
+
+void Server::WebSocketHandler::handleReady(EnhancedCivetServer *server, mg_connection *connection)
+{
+    Q_UNUSED(server);
+    Q_UNUSED(connection);
+}
+
+bool Server::WebSocketHandler::handleData(EnhancedCivetServer *server, mg_connection *connection,
+                                          int bits, const char *data, size_t len)
+{
+    Q_UNUSED(server);
+    Q_UNUSED(connection);
+    Q_UNUSED(bits);
+    QByteArray dataArray (data, len);
+#if HARMONY_DEBUG
+    const struct mg_request_info *requestInfo = mg_get_request_info(connection);
+    qCWarning(QLoggingCategory("ws")) << "Received from " << requestInfo->remote_addr << dataArray;
+#endif
+    bool ok = m_server.m_authentificationService.isAuthorized(data);
+    if (ok) {
+        m_server.m_webSocketContainer.addSocket(connection);
     }
 
-    std::stringstream ss;
-    ss << "HTTP/1.1 200 OK\r\n"
-       << "\r\n"
-       << QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
-    mg_printf(connection, ss.str().c_str());
-    return true;
+    return ok;
+}
+
+void Server::WebSocketHandler::handleClose(EnhancedCivetServer *server,
+                                           const mg_connection *connection)
+{
+    Q_UNUSED(server);
+    m_server.m_webSocketContainer.removeSocket(const_cast<mg_connection *>(connection));
+}
+
+Server::WebSocketContainer::WebSocketContainer(IExtensionManager &extensionManager, Server &server)
+    : m_extensionManager(extensionManager), m_server(server)
+{
+    m_extensionManager.addCallback(*this);
+}
+
+Server::WebSocketContainer::~WebSocketContainer()
+{
+    m_extensionManager.removeCallback(*this);
+}
+
+void Server::WebSocketContainer::addSocket(mg_connection *socket)
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    m_sockets.insert(socket);
+}
+
+void Server::WebSocketContainer::removeSocket(mg_connection *socket)
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    m_sockets.erase(socket);
+}
+
+void Server::WebSocketContainer::clear()
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    m_sockets.clear();
+}
+
+void Server::WebSocketContainer::operator()(const QByteArray &data) const
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    for (mg_connection *socket : m_sockets) {
+        m_server.m_server->wsWrite(socket, WEBSOCKET_OPCODE_TEXT, data);
+    }
 }
 
 }

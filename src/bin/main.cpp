@@ -36,8 +36,6 @@
 #include <QtQuick/QQuickView>
 #include <QtCore/QPointer>
 #include <QtQml/qqml.h>
-#include <certificatemanager.h>
-#include <serviceprovider.h>
 
 int main(int argc, char *argv[])
 {
@@ -50,10 +48,6 @@ int main(int argc, char *argv[])
     app->setOrganizationName("harbour-harmony");
     app->setApplicationName("harbour-harmony");
 #endif
-
-    HarmonyCertificateManager::Ptr certificateManager = HarmonyCertificateManager::create();
-    PluginManager::Ptr pluginManager = PluginManager::create();
-    HarmonyServiceProvider::create(certificateManager, pluginManager);
 
     // View
 #ifndef DESKTOP

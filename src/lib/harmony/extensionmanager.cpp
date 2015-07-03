@@ -32,6 +32,7 @@
 #include "iextensionmanager.h"
 #include <QtCore/QPluginLoader>
 #include <QtCore/QCoreApplication>
+#include <set>
 
 namespace harmony
 {
@@ -41,9 +42,12 @@ class ExtensionManager: public IExtensionManager
 public:
     explicit ExtensionManager();
     ~ExtensionManager();
-    std::vector<Extension *> extensions() const;
+    std::vector<Extension *> extensions() const override;
+    void addCallback(ICallback &callback) override;
+    void removeCallback(ICallback &callback) override;
 private:
     std::vector<Extension *> m_extensions {};
+    std::set<ICallback *> m_callbacks {};
 };
 
 
@@ -54,6 +58,11 @@ ExtensionManager::ExtensionManager()
         Extension *extension = qobject_cast<Extension *>(object);
         if (extension) {
             m_extensions.push_back(extension);
+            QObject::connect(extension, &Extension::broadcast, [this](const QString &data) {
+                for (ICallback *callback : m_callbacks) {
+                    (*callback)(data.toLocal8Bit());
+                }
+            });
         }
     }
 }
@@ -70,6 +79,16 @@ ExtensionManager::~ExtensionManager()
 std::vector<Extension *> ExtensionManager::extensions() const
 {
     return m_extensions;
+}
+
+void ExtensionManager::addCallback(IExtensionManager::ICallback &callback)
+{
+    m_callbacks.insert(&callback);
+}
+
+void ExtensionManager::removeCallback(IExtensionManager::ICallback &callback)
+{
+    m_callbacks.erase(&callback);
 }
 
 IExtensionManager::Ptr IExtensionManager::create()
