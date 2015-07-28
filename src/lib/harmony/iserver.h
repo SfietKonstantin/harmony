@@ -43,6 +43,8 @@ class IServer
 {
 public:
     using Ptr = std::unique_ptr<IServer>;
+    IServer & operator=(const IServer &) = delete;
+    IServer & operator=(IServer &&) = delete;
     virtual ~IServer() {}
     virtual int port() const = 0;
     virtual bool start() = 0;

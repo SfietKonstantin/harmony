@@ -40,7 +40,7 @@
 namespace harmony
 {
 
-class Endpoint
+class Endpoint final
 {
 public:
     enum class Type
@@ -61,7 +61,7 @@ private:
     const std::string m_name {};
 };
 
-class Reply
+class Reply final
 {
 public:
     enum class Type
@@ -92,6 +92,8 @@ private:
 class IExtension
 {
 public:
+    IExtension & operator=(const IExtension &) = delete;
+    IExtension & operator=(IExtension &&) = delete;
     virtual ~IExtension() {}
     virtual std::string id() const = 0;
     virtual QString name() const = 0;

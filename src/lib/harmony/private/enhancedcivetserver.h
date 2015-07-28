@@ -44,6 +44,8 @@ class CivetWebSocketHandler
 {
 public:
     virtual ~CivetWebSocketHandler() {}
+    CivetWebSocketHandler & operator=(const CivetWebSocketHandler &) = delete;
+    CivetWebSocketHandler & operator=(CivetWebSocketHandler &&) = delete;
     virtual bool handleConnect(EnhancedCivetServer *server, const mg_connection *connection) = 0;
     virtual void handleReady(EnhancedCivetServer *server, mg_connection *connection) = 0;
     virtual bool handleData(EnhancedCivetServer *server, mg_connection *connection,
@@ -51,7 +53,7 @@ public:
     virtual void handleClose(EnhancedCivetServer *server, const mg_connection *connection) = 0;
 };
 
-class EnhancedCivetServer: public CivetServer
+class EnhancedCivetServer final : public CivetServer
 {
 public:
     EnhancedCivetServer(const char **options, const struct mg_callbacks *callbacks = 0);

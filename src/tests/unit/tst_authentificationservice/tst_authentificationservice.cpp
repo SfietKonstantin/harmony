@@ -54,10 +54,9 @@ private Q_SLOTS:
     void testPasswordChanged()
     {
         bool changed {false};
-        IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test", [&changed](const std::string &) {
             changed = true;
-        };
-        IAuthentificationService::Ptr service = IAuthentificationService::create("test", callback);
+        });
         QVERIFY(service->authenticate("test").isNull());
         QVERIFY(!changed);
         service->authenticate("test");
@@ -68,10 +67,9 @@ private Q_SLOTS:
     void testPasswordChanged2()
     {
         bool changed {false};
-        IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
+        IAuthentificationService::Ptr service = IAuthentificationService::create("test", [&changed](const std::string &) {
             changed = true;
-        };
-        IAuthentificationService::Ptr service = IAuthentificationService::create("test", callback);
+        });
         QVERIFY(!service->authenticate(service->password()).isNull());
         QVERIFY(changed);
     }

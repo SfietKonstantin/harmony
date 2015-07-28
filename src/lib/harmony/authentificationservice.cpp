@@ -179,9 +179,9 @@ void AuthentificationService::generatePassword(bool init)
 }
 
 IAuthentificationService::Ptr IAuthentificationService::create(const QByteArray &key,
-                                                               PasswordChangedCallback_t passwordChangedCallback)
+                                                               PasswordChangedCallback_t &&passwordChangedCallback)
 {
-    return Ptr(new AuthentificationService(key, passwordChangedCallback));
+    return Ptr(new AuthentificationService(key, std::move(passwordChangedCallback)));
 }
 
 }

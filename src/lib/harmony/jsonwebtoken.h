@@ -49,7 +49,7 @@ namespace harmony
  *
  * This class only supports HMAC-SHA256 based JSON web tokens.
  */
-class JsonWebToken
+class JsonWebToken final
 {
 public:
     explicit JsonWebToken();

@@ -44,13 +44,15 @@ class IAuthentificationService
 public:
     using Ptr = std::unique_ptr<IAuthentificationService>;
     using PasswordChangedCallback_t = std::function<void(const std::string &password)>;
+    IAuthentificationService & operator=(const IAuthentificationService &) = delete;
+    IAuthentificationService & operator=(IAuthentificationService &&) = delete;
     virtual ~IAuthentificationService() {}
     virtual std::string password() const = 0;
     virtual JsonWebToken authenticate(const std::string &password) = 0;
     virtual QByteArray hashJwt(const JsonWebToken &token) = 0;
     virtual bool isAuthorized(const QByteArray &jwt) = 0;
     static Ptr create(const QByteArray &key,
-                      PasswordChangedCallback_t passwordChangedCallback = PasswordChangedCallback_t());
+                      PasswordChangedCallback_t &&passwordChangedCallback = PasswordChangedCallback_t());
 };
 
 }

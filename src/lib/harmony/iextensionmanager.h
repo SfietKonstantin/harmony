@@ -48,6 +48,8 @@ public:
         virtual void operator()(const QByteArray &data) const = 0;
     };
     using Ptr = std::unique_ptr<IExtensionManager>;
+    IExtensionManager & operator=(const IExtensionManager &) = delete;
+    IExtensionManager & operator=(IExtensionManager &&) = delete;
     virtual ~IExtensionManager() {}
     virtual std::vector<Extension *> extensions() const = 0;
     virtual void addCallback(ICallback &callback) = 0;

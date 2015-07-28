@@ -150,11 +150,9 @@ private Q_SLOTS:
         std::unique_ptr<QNetworkReply> reply3 {};
 
         bool changed {false};
-        IAuthentificationService::PasswordChangedCallback_t callback = [&changed](const std::string &) {
+        IAuthentificationService::Ptr as = IAuthentificationService::create("test", [&changed](const std::string &) {
             changed = true;
-        };
-
-        IAuthentificationService::Ptr as = IAuthentificationService::create("test", callback);
+        });
         IExtensionManager::Ptr em = IExtensionManager::create();
         IServer::Ptr server = IServer::create(PORT, *as, *em);
         QVERIFY(server->start());

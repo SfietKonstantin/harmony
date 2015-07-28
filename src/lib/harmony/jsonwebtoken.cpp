@@ -37,6 +37,11 @@
 namespace harmony
 {
 
+static_assert(std::is_copy_constructible<JsonWebToken>::value, "JsonWebToken must be copy constructible");
+static_assert(std::is_copy_assignable<JsonWebToken>::value, "JsonWebToken must be copy assignable");
+static_assert(std::is_move_constructible<JsonWebToken>::value, "JsonWebToken must be move constructible");
+static_assert(std::is_move_assignable<JsonWebToken>::value, "JsonWebToken must be move assignable");
+
 static QByteArray makeSignature(const QByteArray &jwt, const QByteArray &key)
 {
     return QMessageAuthenticationCode::hash(jwt, key, QCryptographicHash::Sha256).toHex();
@@ -112,7 +117,5 @@ JsonWebToken JsonWebToken::fromJwt(const QByteArray &jwt, const QByteArray &key)
 
     return JsonWebToken(document.object());
 }
-
-
 
 }

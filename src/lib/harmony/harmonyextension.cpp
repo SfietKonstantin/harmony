@@ -36,6 +36,12 @@
 namespace harmony
 {
 
+static_assert(std::is_copy_constructible<Endpoint>::value, "Endpoint must be copy constructible");
+static_assert(std::is_move_constructible<Endpoint>::value, "Endpoint must be move constructible");
+
+static_assert(std::is_copy_constructible<Reply>::value, "Reply must be copy constructible");
+static_assert(std::is_move_constructible<Reply>::value, "Reply must be move constructible");
+
 Endpoint::Endpoint()
 {
 }
