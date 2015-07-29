@@ -174,7 +174,7 @@ void AuthentificationService::generatePassword(bool init)
     m_passwordAttempts = PASSWORD_ATTEMPTS_MAX;
 
 #ifdef HARMONY_DEBUG
-    qCWarning(QLoggingCategory("auth-service")) << "Current password:" << QString::fromStdString(m_password);
+    qCDebug(QLoggingCategory("auth-service")) << "Current password:" << QString::fromStdString(m_password);
 #endif
 }
 

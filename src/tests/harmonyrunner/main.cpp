@@ -86,9 +86,9 @@ int main(int argc, char **argv)
                                           dir.toStdString());
 
     std::vector<Extension *> extensions = extensionManager->extensions();
-    qCWarning(QLoggingCategory("harmony-runner")) << "Loaded extensions:" << extensions.size();
+    qCDebug(QLoggingCategory("harmony-runner")) << "Loaded extensions:" << extensions.size();
     for (Extension *extension : extensions) {
-        qCWarning(QLoggingCategory("harmony-runner")) << QString::fromStdString(extension->id()) << ":" << extension->name();
+        qCDebug(QLoggingCategory("harmony-runner")) << QString::fromStdString(extension->id()) << ":" << extension->name();
     }
     server->start();
     return app.exec();

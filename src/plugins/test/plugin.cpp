@@ -95,9 +95,13 @@ public:
             break;
         }
 
+        int status = 200;
         QJsonObject paramsObject;
         for (const QPair<QString, QString> &query : params.queryItems(QUrl::FullyDecoded)) {
             paramsObject.insert(query.first, query.second);
+            if (query.first == "status") {
+                status = query.second.toInt();
+            }
         }
 
         returned.insert("type", type);
@@ -105,7 +109,7 @@ public:
         returned.insert("params", paramsObject);
         returned.insert("body", body.object());
 
-        return Reply(QJsonDocument(returned));
+        return Reply(status, QJsonDocument(returned));
     }
 };
 

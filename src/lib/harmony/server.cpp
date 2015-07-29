@@ -174,9 +174,9 @@ bool Server::start()
 
         const QByteArray &certificatePath = getCertificateFilePath();
 
-#if HARMONY_DEBUG
-        qCWarning(QLoggingCategory("server")) << "Starting harmony server on port" << m_port;
-        qCWarning(QLoggingCategory("server")) << "Using certificate from" << certificatePath;
+#ifdef HARMONY_DEBUG
+        qCDebug(QLoggingCategory("server")) << "Starting harmony server on port" << m_port;
+        qCDebug(QLoggingCategory("server")) << "Using certificate from" << certificatePath;
 #endif
 
         const char *optionsNoPublic[] = {"listening_ports", port.c_str(),
@@ -199,14 +199,14 @@ bool Server::start()
         m_server->addHandler("/api/list", m_apiListHandler);
         m_server->addWebSocketHandler("/api/ws", &m_webSocketHandler);
     } catch (const CertificateException &e) {
-#if HARMONY_DEBUG
+#ifdef HARMONY_DEBUG
         qWarning() << "Exception when creating certificate:" << e.what();
 #else
         Q_UNUSED(e)
 #endif
         ok = false;
     } catch (const CivetException &e) {
-#if HARMONY_DEBUG
+#ifdef HARMONY_DEBUG
         qWarning() << "Exception when starting Server:" << e.what();
 #else
         Q_UNUSED(e)
@@ -227,7 +227,7 @@ void Server::stop()
 
 QByteArray Server::getCertificateFilePath()
 {
-    QDir dir (QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+    QDir dir {QStandardPaths::writableLocation(QStandardPaths::DataLocation)};
     if (!dir.exists()) {
         if (!QDir::root().mkpath(dir.absolutePath())) {
             throw CertificateException("Failed to create application data directory");
@@ -506,9 +506,9 @@ bool Server::WebSocketHandler::handleData(EnhancedCivetServer *server, mg_connec
     Q_UNUSED(connection);
     Q_UNUSED(bits);
     QByteArray dataArray (data, len);
-#if HARMONY_DEBUG
+#ifdef HARMONY_DEBUG
     const struct mg_request_info *requestInfo = mg_get_request_info(connection);
-    qCWarning(QLoggingCategory("ws")) << "Received from " << requestInfo->remote_addr << dataArray;
+    qCDebug(QLoggingCategory("ws")) << "Received from " << requestInfo->remote_addr << dataArray;
 #endif
     bool ok = m_server.m_authentificationService.isAuthorized(data);
     if (ok) {

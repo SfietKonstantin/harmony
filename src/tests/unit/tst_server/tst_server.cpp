@@ -62,6 +62,12 @@ private Q_SLOTS:
     void initTestCase()
     {
         Q_INIT_RESOURCE(harmony);
+
+        // Remove path to certificate
+        QDir dir {QStandardPaths::writableLocation(QStandardPaths::DataLocation)};
+        if (dir.exists()) {
+            dir.removeRecursively();
+        }
     }
     void testPing()
     {
@@ -402,6 +408,124 @@ private Q_SLOTS:
         }
 
         QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+    }
+    void testStatusCode()
+    {
+        QNetworkAccessManager network {};
+        std::unique_ptr<QNetworkReply> reply {};
+
+        IAuthentificationService::Ptr as = IAuthentificationService::create("test");
+        IExtensionManager::Ptr em = IExtensionManager::create();
+        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        QVERIFY(server->start());
+
+        // Authorization
+        QNetworkRequest authorizationRequest (QUrl("https://localhost:8080/authenticate"));
+        authorizationRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        QJsonObject object;
+        object.insert("password", QString::fromStdString(as->password()));
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
+        reply.reset(network.post(authorizationRequest, query));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QByteArray token {"Bearer "};
+
+        QJsonDocument result {QJsonDocument::fromJson(reply->readAll())};
+        token.append(result.object().value("token").toString());
+
+        // Status 201
+        QNetworkRequest getRequest (QUrl("https://localhost:8080/api/test/test_get?status=201"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 201);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"201\"},\"type\":\"get\"}"));
+
+        // Status 202
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=202"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 202);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"202\"},\"type\":\"get\"}"));
+
+        // Status 204
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=204"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 204);
+        QVERIFY(reply->readAll().isEmpty()); // No content, even if content has been sent
+
+        // Status 401
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=401"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::AuthenticationRequiredError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 401);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"401\"},\"type\":\"get\"}"));
+
+        // Status 403
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=403"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::ContentOperationNotPermittedError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 403);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"403\"},\"type\":\"get\"}"));
+
+        // Status 404
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=404"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::ContentNotFoundError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 404);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"404\"},\"type\":\"get\"}"));
+
+        // Non-standard status
+        getRequest = QNetworkRequest(QUrl("https://localhost:8080/api/test/test_get?status=12345"));
+        getRequest.setRawHeader("Authorization", token);
+        reply.reset(network.get(getRequest));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::ProtocolInvalidOperationError);
+        QCOMPARE(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(), 400);
+        QCOMPARE(reply->readAll(), QByteArray("{\"body\":{},\"name\":\"test_get\",\"params\":{\"status\":\"12345\"},\"type\":\"get\"}"));
     }
 };
 
