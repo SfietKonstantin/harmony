@@ -47,13 +47,16 @@ public:
     IServer & operator=(IServer &&) = delete;
     virtual ~IServer() {}
     virtual int port() const = 0;
+    virtual void setPort(int port) = 0;
+    virtual std::string publicFolder() const = 0;
+    virtual void setPublicFolder(const std::string &publicFolder) = 0;
     virtual bool isRunning() const = 0;
     virtual bool start() = 0;
     virtual void stop() = 0;
     // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
+    static Ptr create(IAuthentificationService &authentificationService,
                       IExtensionManager &extensionManager,
-                      const std::string &publicFolder = std::string());
+                      int port = 8080, const std::string &publicFolder = std::string());
 };
 
 }

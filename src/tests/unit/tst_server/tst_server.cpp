@@ -76,7 +76,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QCOMPARE(server->port(), PORT);
         QVERIFY(server->start());
 
@@ -102,9 +102,12 @@ private Q_SLOTS:
         QNetworkAccessManager network {};
         std::unique_ptr<QNetworkReply> reply {};
 
-        IAuthentificationService::Ptr as = IAuthentificationService::create("test");
+        bool changed {false};
+        IAuthentificationService::Ptr as = IAuthentificationService::create("test", [&changed](const std::string &) {
+            changed = true;
+        });
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
 
@@ -122,6 +125,7 @@ private Q_SLOTS:
         QCOMPARE(reply->error(), QNetworkReply::NoError);
         QList<QByteArray> replySplitted = reply->readAll().split('.');
         QCOMPARE(replySplitted.count(), 3);
+        QVERIFY(changed);
     }
     void testAuthentificationFailure()
     {
@@ -130,7 +134,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
@@ -149,7 +153,6 @@ private Q_SLOTS:
     }
     void testMultiRequest()
     {
-        QSKIP("Takes time");
         QNetworkAccessManager network {};
         std::unique_ptr<QNetworkReply> reply1 {};
         std::unique_ptr<QNetworkReply> reply2 {};
@@ -160,7 +163,7 @@ private Q_SLOTS:
             changed = true;
         });
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
@@ -183,12 +186,11 @@ private Q_SLOTS:
     }
     void testMultiRequest2()
     {
-        QSKIP("Takes time");
         QNetworkAccessManager network {};
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
@@ -229,7 +231,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         // Authorization
@@ -316,7 +318,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         // Get
@@ -364,7 +366,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         // Get
@@ -416,7 +418,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         // Authorization

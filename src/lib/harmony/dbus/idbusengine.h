@@ -29,73 +29,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#include "idbusinterface.h"
-#include "private/dbusinterfaceimpl.h"
-#include "private/adaptor.h"
-#include <QtCore/QLoggingCategory>
-#include <QtDBus/QDBusConnection>
+#ifndef IDBUSENGINE_H
+#define IDBUSENGINE_H
+
+#include "iengine.h"
 
 namespace harmony
 {
 
-static const char *SERVICE = "harbour.harmony";
-static const char *PATH = "/";
-
-DBusInterfaceImpl::DBusInterfaceImpl(IEngine::Ptr &&engine)
-    : QObject(), m_engine{std::move(engine)}
+class IDBusEngine: public IEngine
 {
-}
-
-DBusInterfaceImpl::~DBusInterfaceImpl()
-{
-    QDBusConnection connection {QDBusConnection::sessionBus()};
-    connection.unregisterObject(PATH);
-    connection.unregisterService(SERVICE);
-}
-
-
-DBusInterfaceImpl::Ptr DBusInterfaceImpl::create(IEngine::Ptr &&engine)
-{
-    if (!engine) {
-        return Ptr();
-    }
-
-    QDBusConnection connection {QDBusConnection::sessionBus()};
-    if (!connection.registerService(SERVICE)) {
-        qCDebug(QLoggingCategory("dbus")) << "Failed to register DBus service";
-        return Ptr();
-    }
-
-    DBusInterfaceImpl::Ptr instance {new DBusInterfaceImpl(std::move(engine))};
-
-    if (!connection.registerObject(PATH, instance.get())) {
-        qCDebug(QLoggingCategory("dbus")) << "Failed to register DBus object";
-        return Ptr();
-    }
-
-    new HarmonyAdaptor(instance.get());
-
-    return instance;
-}
-
-bool DBusInterfaceImpl::IsRunning() const
-{
-    return m_engine->isRunning();
-}
-
-bool DBusInterfaceImpl::Start()
-{
-    return m_engine->start();
-}
-
-bool DBusInterfaceImpl::Stop()
-{
-    return m_engine->stop();
-}
-
-IDBusInterface::Ptr IDBusInterface::create(IEngine::Ptr &&engine)
-{
-    return DBusInterfaceImpl::create(std::move(engine));
-}
+public:
+    using Ptr = std::unique_ptr<IDBusEngine>;
+    static Ptr create(const QByteArray &key,
+                      IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback = IAuthentificationService::PasswordChangedCallback_t(),
+                      int port = 8080, const std::string &publicFolder = std::string());
+};
 
 }
+
+#endif // IDBUSENGINE_H

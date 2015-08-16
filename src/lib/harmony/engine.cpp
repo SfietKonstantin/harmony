@@ -40,24 +40,25 @@ namespace harmony
 class Engine: public IEngine
 {
 public:
-    explicit Engine(const QByteArray &key, int port,
+    explicit Engine(const QByteArray &key,
                     IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
-                    const std::string &publicFolder);
+                    int port, const std::string &publicFolder);
     bool isRunning() const override;
     bool start() override;
     bool stop() override;
+    std::string password() const override;
 private:
     IAuthentificationService::Ptr m_authentificationService {};
     IExtensionManager::Ptr m_extensionManager {};
     IServer::Ptr m_server {};
 };
 
-Engine::Engine(const QByteArray &key, int port,
+Engine::Engine(const QByteArray &key,
                IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
-               const std::string &publicFolder)
+               int port, const std::string &publicFolder)
     : m_authentificationService{IAuthentificationService::create(key, std::move(passwordChangedCallback))}
     , m_extensionManager{IExtensionManager::create()}
-    , m_server{IServer::create(port, *m_authentificationService, *m_extensionManager, publicFolder)}
+    , m_server{IServer::create(*m_authentificationService, *m_extensionManager, port, publicFolder)}
 {
 }
 
@@ -80,11 +81,16 @@ bool Engine::stop()
     return true;
 }
 
-IEngine::Ptr IEngine::create(const QByteArray &key, int port,
-                             IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
-                             const std::string &publicFolder)
+std::string Engine::password() const
 {
-    return Ptr(new Engine(key, port, std::move(passwordChangedCallback), publicFolder));
+    return m_authentificationService->password();
+}
+
+IEngine::Ptr IEngine::create(const QByteArray &key,
+                             IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+                             int port, const std::string &publicFolder)
+{
+    return Ptr(new Engine(key, std::move(passwordChangedCallback), port, publicFolder));
 }
 
 }

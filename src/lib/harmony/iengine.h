@@ -47,9 +47,10 @@ public:
     virtual bool isRunning() const = 0;
     virtual bool start() = 0;
     virtual bool stop() = 0;
-    static Ptr create(const QByteArray &key, int port,
+    virtual std::string password() const = 0;
+    static Ptr create(const QByteArray &key,
                       IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback = IAuthentificationService::PasswordChangedCallback_t(),
-                      const std::string &publicFolder = std::string());
+                      int port = 8080, const std::string &publicFolder = std::string());
 };
 
 }

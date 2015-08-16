@@ -322,7 +322,7 @@ private Q_SLOTS:
 
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
@@ -376,7 +376,7 @@ private Q_SLOTS:
     {
         IAuthentificationService::Ptr as = IAuthentificationService::create("test");
         IExtensionManager::Ptr em = IExtensionManager::create();
-        IServer::Ptr server = IServer::create(PORT, *as, *em);
+        IServer::Ptr server = IServer::create(*as, *em, PORT);
         QVERIFY(server->start());
 
         QWebSocket socket;

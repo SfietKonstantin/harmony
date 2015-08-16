@@ -10,5 +10,11 @@
     <method name="Stop">
       <arg name="stopped" type="b" direction="out"/>
     </method>
+    <method name="Password">
+      <arg name="password" type="s" direction="out"/>
+    </method>
+    <signal name="PasswordChanged">
+      <arg name="password" type="s" direction="out"/>
+    </method>
   </interface>
 </node>

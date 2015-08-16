@@ -82,8 +82,8 @@ int main(int argc, char **argv)
 
     IAuthentificationService::Ptr authentificationService = IAuthentificationService::create(QUuid::createUuid().toByteArray());
     IExtensionManager::Ptr extensionManager = IExtensionManager::create();
-    IServer::Ptr server = IServer::create(8080, *authentificationService, *extensionManager,
-                                          dir.toStdString());
+    IServer::Ptr server = IServer::create(*authentificationService, *extensionManager,
+                                          8080, dir.toStdString());
 
     std::vector<Extension *> extensions = extensionManager->extensions();
     qCDebug(QLoggingCategory("harmony-runner")) << "Loaded extensions:" << extensions.size();

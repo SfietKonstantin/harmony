@@ -36,11 +36,33 @@
 #include <QtDBus/QDBusInterface>
 #include <iengine.h>
 #include <iextensionmanager.h>
-#include <dbus/idbusinterface.h>
+#include <dbus/idbusengine.h>
 
 using namespace harmony;
 
 static const int PORT = 8080;
+
+class PasswordChangedListener: public QObject
+{
+    Q_OBJECT
+public:
+    explicit PasswordChangedListener(QObject *parent = 0)
+        : QObject(parent), m_changed{false}
+    {
+    }
+    bool changed() const
+    {
+        return m_changed;
+    }
+public slots:
+    void passwordChanged(const QString &password)
+    {
+        Q_UNUSED(password)
+        m_changed = true;
+    }
+private:
+    bool m_changed {false};
+};
 
 class TstEngine: public QObject
 {
@@ -69,7 +91,7 @@ private Q_SLOTS:
         QNetworkAccessManager network {};
         std::unique_ptr<QNetworkReply> reply {};
 
-        IEngine::Ptr engine {IEngine::create("test", PORT)};
+        IEngine::Ptr engine {IEngine::create("test", IAuthentificationService::PasswordChangedCallback_t(), PORT)};
         QVERIFY(engine->start());
         QVERIFY(!engine->start());
         QVERIFY(engine->isRunning());
@@ -93,13 +115,40 @@ private Q_SLOTS:
         }
         QCOMPARE(reply->error(), QNetworkReply::ConnectionRefusedError);
     }
+    void testAuthentification()
+    {
+        QNetworkAccessManager network {};
+        std::unique_ptr<QNetworkReply> reply {};
+
+        bool changed {false};
+        IEngine::Ptr engine = IEngine::create("test", [&changed](const std::string &) {
+            changed = true;
+        }, PORT);
+        QVERIFY(engine->start());
+
+
+        QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
+        postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        QJsonObject object;
+        object.insert("password", QString::fromStdString(engine->password()));
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
+        reply.reset(network.post(postRequest, query));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QList<QByteArray> replySplitted = reply->readAll().split('.');
+        QCOMPARE(replySplitted.count(), 3);
+        QVERIFY(changed);
+    }
     void testEngineDBus()
     {
         QNetworkAccessManager network {};
         std::unique_ptr<QNetworkReply> reply {};
 
-        IEngine::Ptr engine {IEngine::create("test", PORT)};
-        IDBusInterface::Ptr dbus {IDBusInterface::create(std::move(engine))};
+        IDBusEngine::Ptr engine {IDBusEngine::create("test", IAuthentificationService::PasswordChangedCallback_t(), PORT)};
         QDBusInterface interface {"harbour.harmony", "/", "harbour.harmony"};
 
         QDBusMessage result {interface.call("Start")};
@@ -151,16 +200,53 @@ private Q_SLOTS:
     }
     void testDoubleDBus()
     {
-        IDBusInterface::Ptr emptyDBus {IDBusInterface::create(std::move(IEngine::Ptr()))};
-        QVERIFY(!emptyDBus);
+        IDBusEngine::Ptr engine {IDBusEngine::create("test", IAuthentificationService::PasswordChangedCallback_t(), PORT)};
+        QVERIFY(engine != nullptr);
 
-        IEngine::Ptr engine {IEngine::create("test", PORT)};
-        IDBusInterface::Ptr dbus {IDBusInterface::create(std::move(engine))};
-        QVERIFY(dbus != nullptr);
+        IDBusEngine::Ptr engine2 {IDBusEngine::create("test", IAuthentificationService::PasswordChangedCallback_t(), PORT)};
+        QVERIFY(!engine2);
+    }
+    void testAuthentificationDBus()
+    {
+        QNetworkAccessManager network {};
+        std::unique_ptr<QNetworkReply> reply {};
 
-        IEngine::Ptr engine2 {IEngine::create("test", PORT)};
-        IDBusInterface::Ptr dbus2 {IDBusInterface::create(std::move(engine2))};
-        QVERIFY(!dbus2);
+        bool changed {false};
+        PasswordChangedListener listener {};
+        IDBusEngine::Ptr engine = IDBusEngine::create("test", [&changed] (const std::string &) {
+            changed = true;
+        } , PORT);
+        QDBusInterface interface {"harbour.harmony", "/", "harbour.harmony"};
+        QDBusConnection::sessionBus().connect("harbour.harmony", "/", "harbour.harmony",
+                                              "PasswordChanged", &listener, SLOT(passwordChanged(QString)));
+
+        QDBusMessage result {interface.call("Start")};
+        QCOMPARE(result.type(), QDBusMessage::ReplyMessage);
+        QCOMPARE(result.arguments().count(), 1);
+        QCOMPARE(result.arguments().at(0), QVariant(true));
+
+
+        QNetworkRequest postRequest (QUrl("https://localhost:8080/authenticate"));
+        postRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        QJsonObject object;
+
+        result = interface.call("Password");
+        QCOMPARE(result.type(), QDBusMessage::ReplyMessage);
+        QCOMPARE(result.arguments().count(), 1);
+
+        object.insert("password", result.arguments().at(0).toString());
+        QByteArray query = QJsonDocument(object).toJson(QJsonDocument::Compact);
+        reply.reset(network.post(postRequest, query));
+        handleSslErrors(*reply);
+        while (!reply->isFinished()) {
+            QTest::qWait(100);
+        }
+
+        QCOMPARE(reply->error(), QNetworkReply::NoError);
+        QList<QByteArray> replySplitted = reply->readAll().split('.');
+        QCOMPARE(replySplitted.count(), 3);
+        QVERIFY(listener.changed());
+        QVERIFY(changed);
     }
 };
 

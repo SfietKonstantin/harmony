@@ -1,12 +1,12 @@
-system(qdbusxml2cpp harbour.harmony.xml -i private/dbusinterfaceimpl.h -a private/adaptor)
+system(qdbusxml2cpp harbour.harmony.xml -i private/dbusengineimpl.h -a private/adaptor)
 
 INCLUDEPATH += $$PWD
 
-HEADERS += $$PWD/idbusinterface.h \
+HEADERS += $$PWD/idbusengine.h \
     $$PWD/private/adaptor.h \
-    $$PWD/private/dbusinterfaceimpl.h
+    $$PWD/private/dbusengineimpl.h
 
-SOURCES += $$PWD/dbusinterface.cpp \
+SOURCES += $$PWD/dbusengine.cpp \
     $$PWD/private/adaptor.cpp
 
 OTHER_FILES += $$PWD/harbour.harmony.xml

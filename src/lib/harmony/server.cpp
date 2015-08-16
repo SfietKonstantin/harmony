@@ -54,9 +54,12 @@ using EnhancedCivetServer = private_impl::EnhancedCivetServer;
 class Server: public IServer
 {
 public:
-    explicit Server(int port, IAuthentificationService &authentificationService,
-                    IExtensionManager &extensionManager, const std::string &publicFolder);
+    explicit Server(IAuthentificationService &authentificationService,
+                    IExtensionManager &extensionManager, int port, const std::string &publicFolder);
     int port() const override;
+    void setPort(int port) override;
+    std::string publicFolder() const override;
+    void setPublicFolder(const std::string &publicFolder) override;
     bool isRunning() const override;
     bool start() override;
     void stop() override;
@@ -135,8 +138,8 @@ private:
 
     std::unique_ptr<EnhancedCivetServer> m_server {};
 
-    const int m_port {0};
-    const std::string m_publicFolder {};
+    int m_port {0};
+    std::string m_publicFolder {};
     IAuthentificationService &m_authentificationService;
     const IExtensionManager &m_extensionManager;
     WebSocketContainer m_webSocketContainer;
@@ -148,8 +151,8 @@ private:
     WebSocketHandler m_webSocketHandler;
 };
 
-Server::Server(int port, IAuthentificationService &authentificationService,
-               IExtensionManager &extensionManager, const std::string &publicFolder)
+Server::Server(IAuthentificationService &authentificationService,
+               IExtensionManager &extensionManager, int port, const std::string &publicFolder)
     : m_port{port}, m_publicFolder{publicFolder}, m_authentificationService{authentificationService}
     , m_extensionManager{extensionManager}, m_webSocketContainer{extensionManager, *this}
     , m_authentificationHandler{*this}, m_apiListHandler{*this}, m_webSocketHandler{*this}
@@ -164,6 +167,27 @@ Server::Server(int port, IAuthentificationService &authentificationService,
 int Server::port() const
 {
     return m_port;
+}
+
+void Server::setPort(int port)
+{
+    if (isRunning()) {
+        qCWarning(QLoggingCategory("server")) << "Harmony server is running. Port will be changed when the server is restarted.";
+    }
+    m_port = port;
+}
+
+std::string Server::publicFolder() const
+{
+    return m_publicFolder;
+}
+
+void Server::setPublicFolder(const std::string &publicFolder)
+{
+    if (isRunning()) {
+        qCWarning(QLoggingCategory("server")) << "Harmony server is running. Public folder will be changed when the server is restarted.";
+    }
+    m_publicFolder = publicFolder;
 }
 
 bool Server::isRunning() const
@@ -293,11 +317,11 @@ bool Server::checkAuthorization(mg_connection *connection)
     return true;
 }
 
-IServer::Ptr IServer::create(int port, IAuthentificationService &authentificationService,
-                             IExtensionManager &extensionManager,
+IServer::Ptr IServer::create(IAuthentificationService &authentificationService,
+                             IExtensionManager &extensionManager, int port,
                              const std::string &publicFolder)
 {
-    return Ptr(new Server(port, authentificationService, extensionManager, publicFolder));
+    return Ptr(new Server(authentificationService, extensionManager, port, publicFolder));
 }
 
 bool Server::PingHandler::handleGet(CivetServer *, mg_connection *connection)

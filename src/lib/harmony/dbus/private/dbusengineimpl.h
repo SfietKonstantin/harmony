@@ -33,25 +33,35 @@
 #define DBUSINTERFACEIMPL_H
 
 #include <QtCore/QObject>
-#include "idbusinterface.h"
+#include "idbusengine.h"
 
 namespace harmony
 {
 
-class DBusInterfaceImpl: public QObject, public IDBusInterface
+class DBusEngineImpl: public QObject, public IDBusEngine
 {
     Q_OBJECT
 public:
-    using Ptr = std::unique_ptr<DBusInterfaceImpl>;
-    ~DBusInterfaceImpl();
-    static Ptr create(IEngine::Ptr &&engine);
-public slots:
+    using Ptr = std::unique_ptr<DBusEngineImpl>;
+    ~DBusEngineImpl();
+    static Ptr create(const QByteArray &key, IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+                      int port, const std::string &publicFolder);
+    bool isRunning() const override;
+    bool start() override;
+    bool stop() override;
+    std::string password() const;
+private slots:
     bool IsRunning() const;
     bool Start();
     bool Stop();
+    QString Password() const;
+signals:
+    void PasswordChanged(const QString &password);
 private:
-    explicit DBusInterfaceImpl(IEngine::Ptr &&engine);
+    explicit DBusEngineImpl(const QByteArray &key, IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+                            int port, const std::string &publicFolder);
     IEngine::Ptr m_engine;
+    const IAuthentificationService::PasswordChangedCallback_t m_passwordChangedCallback {};
 };
 
 }
