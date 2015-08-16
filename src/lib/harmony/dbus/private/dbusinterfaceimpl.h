@@ -29,34 +29,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef ISERVER_H
-#define ISERVER_H
+#ifndef DBUSINTERFACEIMPL_H
+#define DBUSINTERFACEIMPL_H
 
-#include <memory>
+#include <QtCore/QObject>
+#include "idbusinterface.h"
 
 namespace harmony
 {
 
-class IAuthentificationService;
-class IExtensionManager;
-class IServer
+class DBusInterfaceImpl: public QObject, public IDBusInterface
 {
+    Q_OBJECT
 public:
-    using Ptr = std::unique_ptr<IServer>;
-    IServer & operator=(const IServer &) = delete;
-    IServer & operator=(IServer &&) = delete;
-    virtual ~IServer() {}
-    virtual int port() const = 0;
-    virtual bool isRunning() const = 0;
-    virtual bool start() = 0;
-    virtual void stop() = 0;
-    // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
-                      IExtensionManager &extensionManager,
-                      const std::string &publicFolder = std::string());
+    using Ptr = std::unique_ptr<DBusInterfaceImpl>;
+    ~DBusInterfaceImpl();
+    static Ptr create(IEngine::Ptr &&engine);
+public slots:
+    bool IsRunning() const;
+    bool Start();
+    bool Stop();
+private:
+    explicit DBusInterfaceImpl(IEngine::Ptr &&engine);
+    IEngine::Ptr m_engine;
 };
 
 }
 
-#endif // ISERVER_H
-
+#endif // DBUSINTERFACEIMPL_H

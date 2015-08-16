@@ -29,34 +29,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef ISERVER_H
-#define ISERVER_H
+#ifndef IDBUSINTERFACE_H
+#define IDBUSINTERFACE_H
 
 #include <memory>
+#include "iengine.h"
 
 namespace harmony
 {
 
-class IAuthentificationService;
-class IExtensionManager;
-class IServer
+class IDBusInterface
 {
 public:
-    using Ptr = std::unique_ptr<IServer>;
-    IServer & operator=(const IServer &) = delete;
-    IServer & operator=(IServer &&) = delete;
-    virtual ~IServer() {}
-    virtual int port() const = 0;
-    virtual bool isRunning() const = 0;
-    virtual bool start() = 0;
-    virtual void stop() = 0;
-    // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
-                      IExtensionManager &extensionManager,
-                      const std::string &publicFolder = std::string());
+    using Ptr = std::unique_ptr<IDBusInterface>;
+    virtual ~IDBusInterface() {}
+    static Ptr create(IEngine::Ptr &&engine);
 };
 
 }
 
-#endif // ISERVER_H
-
+#endif // IDBUSINTERFACE_H

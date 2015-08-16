@@ -29,34 +29,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef ISERVER_H
-#define ISERVER_H
+#ifndef IENGINE_H
+#define IENGINE_H
 
 #include <memory>
+#include <QtCore/QByteArray>
+#include "iauthentificationservice.h"
 
 namespace harmony
 {
 
-class IAuthentificationService;
-class IExtensionManager;
-class IServer
+class IEngine
 {
 public:
-    using Ptr = std::unique_ptr<IServer>;
-    IServer & operator=(const IServer &) = delete;
-    IServer & operator=(IServer &&) = delete;
-    virtual ~IServer() {}
-    virtual int port() const = 0;
+    using Ptr = std::unique_ptr<IEngine>;
+    virtual ~IEngine() {}
     virtual bool isRunning() const = 0;
     virtual bool start() = 0;
-    virtual void stop() = 0;
-    // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
-                      IExtensionManager &extensionManager,
+    virtual bool stop() = 0;
+    static Ptr create(const QByteArray &key, int port,
+                      IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback = IAuthentificationService::PasswordChangedCallback_t(),
                       const std::string &publicFolder = std::string());
 };
 
 }
 
-#endif // ISERVER_H
-
+#endif // IENGINE_H

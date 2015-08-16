@@ -29,34 +29,73 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef ISERVER_H
-#define ISERVER_H
-
-#include <memory>
+#include "idbusinterface.h"
+#include "private/dbusinterfaceimpl.h"
+#include "private/adaptor.h"
+#include <QtCore/QLoggingCategory>
+#include <QtDBus/QDBusConnection>
 
 namespace harmony
 {
 
-class IAuthentificationService;
-class IExtensionManager;
-class IServer
-{
-public:
-    using Ptr = std::unique_ptr<IServer>;
-    IServer & operator=(const IServer &) = delete;
-    IServer & operator=(IServer &&) = delete;
-    virtual ~IServer() {}
-    virtual int port() const = 0;
-    virtual bool isRunning() const = 0;
-    virtual bool start() = 0;
-    virtual void stop() = 0;
-    // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
-                      IExtensionManager &extensionManager,
-                      const std::string &publicFolder = std::string());
-};
+static const char *SERVICE = "harbour.harmony";
+static const char *PATH = "/";
 
+DBusInterfaceImpl::DBusInterfaceImpl(IEngine::Ptr &&engine)
+    : QObject(), m_engine{std::move(engine)}
+{
 }
 
-#endif // ISERVER_H
+DBusInterfaceImpl::~DBusInterfaceImpl()
+{
+    QDBusConnection connection {QDBusConnection::sessionBus()};
+    connection.unregisterObject(PATH);
+    connection.unregisterService(SERVICE);
+}
 
+
+DBusInterfaceImpl::Ptr DBusInterfaceImpl::create(IEngine::Ptr &&engine)
+{
+    if (!engine) {
+        return Ptr();
+    }
+
+    QDBusConnection connection {QDBusConnection::sessionBus()};
+    if (!connection.registerService(SERVICE)) {
+        qCDebug(QLoggingCategory("dbus")) << "Failed to register DBus service";
+        return Ptr();
+    }
+
+    DBusInterfaceImpl::Ptr instance {new DBusInterfaceImpl(std::move(engine))};
+
+    if (!connection.registerObject(PATH, instance.get())) {
+        qCDebug(QLoggingCategory("dbus")) << "Failed to register DBus object";
+        return Ptr();
+    }
+
+    new HarmonyAdaptor(instance.get());
+
+    return instance;
+}
+
+bool DBusInterfaceImpl::IsRunning() const
+{
+    return m_engine->isRunning();
+}
+
+bool DBusInterfaceImpl::Start()
+{
+    return m_engine->start();
+}
+
+bool DBusInterfaceImpl::Stop()
+{
+    return m_engine->stop();
+}
+
+IDBusInterface::Ptr IDBusInterface::create(IEngine::Ptr &&engine)
+{
+    return DBusInterfaceImpl::create(std::move(engine));
+}
+
+}

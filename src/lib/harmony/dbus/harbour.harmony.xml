@@ -1,0 +1,14 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="harbour.harmony">
+    <method name="IsRunning">
+      <arg name="started" type="b" direction="out"/>
+    </method>
+    <method name="Start">
+      <arg name="started" type="b" direction="out"/>
+    </method>
+    <method name="Stop">
+      <arg name="stopped" type="b" direction="out"/>
+    </method>
+  </interface>
+</node>

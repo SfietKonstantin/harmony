@@ -15,7 +15,8 @@ HEADERS += \
     iauthentificationservice.h \
     harmonyextension.h \
     iextensionmanager.h \
-    private/enhancedcivetserver.h
+    private/enhancedcivetserver.h \
+    iengine.h
 
 SOURCES += \
     server.cpp \
@@ -23,9 +24,13 @@ SOURCES += \
     authentificationservice.cpp \
     harmonyextension.cpp \
     extensionmanager.cpp \
-    private/enhancedcivetserver.cpp
+    private/enhancedcivetserver.cpp \
+    engine.cpp
 
 RESOURCES += \
     harmony.qrc
 
+include(dbus/dbus.pri)
+
 system($$PWD/gencert.sh $$PWD/ssl)
+

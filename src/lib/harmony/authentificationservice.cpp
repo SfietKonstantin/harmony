@@ -69,14 +69,14 @@ private:
 
 AuthentificationService::AuthentificationService(const QByteArray &key,
                                                  PasswordChangedCallback_t passwordChangedCallback)
-    : m_key{key}, m_passwordChangedCallback(std::move(passwordChangedCallback))
+    : m_key{key}, m_passwordChangedCallback{std::move(passwordChangedCallback)}
 {
     generatePassword(true);
 }
 
 std::string AuthentificationService::password() const
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     return m_password;
 }
 
@@ -84,20 +84,20 @@ JsonWebToken AuthentificationService::authenticate(const std::string &password)
 {
     if (!comparePassword(password)) {
         decrementPasswordAttempts();
-        return JsonWebToken();
+        return JsonWebToken{};
     }
 
     generatePassword();
 
-    chrono::time_point<std::chrono::system_clock> now = chrono::system_clock::now();
-    int iat = chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
+    chrono::time_point<std::chrono::system_clock> now {chrono::system_clock::now()};
+    long int iat {chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count()};
 
     QString jti = QUuid::createUuid().toString().remove("{").remove("}"); // TODO: save the JTI
     QJsonObject payload {};
-    payload.insert("iat", iat);
-    payload.insert("exp", iat + VALIDITY_DURATION);
+    payload.insert("iat", static_cast<int>(iat));
+    payload.insert("exp", static_cast<int>(iat) + VALIDITY_DURATION);
     payload.insert("jti", jti);
-    return JsonWebToken(payload);
+    return JsonWebToken{payload};
 }
 
 QByteArray AuthentificationService::hashJwt(const JsonWebToken &token)
@@ -107,7 +107,7 @@ QByteArray AuthentificationService::hashJwt(const JsonWebToken &token)
 
 bool AuthentificationService::isAuthorized(const QByteArray &jwt)
 {
-    JsonWebToken token = JsonWebToken::fromJwt(jwt, m_key);
+    JsonWebToken token {JsonWebToken::fromJwt(jwt, m_key)};
     if (token.isNull()) {
         return false;
     }
@@ -125,13 +125,13 @@ bool AuthentificationService::isAuthorized(const QByteArray &jwt)
 
 bool AuthentificationService::comparePassword(const std::string &password) const
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     return m_password == password;
 }
 
 void AuthentificationService::setPassword(const std::string &password, bool init)
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     if (m_password != password) {
         m_password = password;
         if (m_passwordChangedCallback && !init) {
@@ -154,7 +154,7 @@ void AuthentificationService::generatePassword(bool init)
     public:
         explicit Random()
         {
-            std::random_device randomDevice;
+            std::random_device randomDevice {};
             m_rng.seed(randomDevice());
         }
         int operator()() {
@@ -165,8 +165,8 @@ void AuthentificationService::generatePassword(bool init)
         std::mt19937 m_rng {};
     };
 
-    static Random random;
-    std::stringstream ss;
+    static Random random {};
+    std::stringstream ss {};
     ss << std::setw(PASSWORD_LENGTH) << std::setfill('0') << random();
     std::string password = ss.str();
 
@@ -181,7 +181,7 @@ void AuthentificationService::generatePassword(bool init)
 IAuthentificationService::Ptr IAuthentificationService::create(const QByteArray &key,
                                                                PasswordChangedCallback_t &&passwordChangedCallback)
 {
-    return Ptr(new AuthentificationService(key, std::move(passwordChangedCallback)));
+    return Ptr{new AuthentificationService(key, std::move(passwordChangedCallback))};
 }
 
 }

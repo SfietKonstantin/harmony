@@ -52,7 +52,7 @@ JsonWebToken::JsonWebToken()
 }
 
 JsonWebToken::JsonWebToken(const QJsonObject &payload)
-    : m_payload(payload)
+    : m_payload{payload}
 {
 }
 

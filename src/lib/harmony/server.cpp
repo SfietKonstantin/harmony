@@ -57,6 +57,7 @@ public:
     explicit Server(int port, IAuthentificationService &authentificationService,
                     IExtensionManager &extensionManager, const std::string &publicFolder);
     int port() const override;
+    bool isRunning() const override;
     bool start() override;
     void stop() override;
 private:
@@ -89,7 +90,7 @@ private:
         void handle(mg_connection *connection, bool hasData);
         Server &m_server;
         const Extension &m_extension;
-        Endpoint m_endpoint;
+        Endpoint m_endpoint {};
     };
     class ApiListHandler: public CivetHandler
     {
@@ -97,7 +98,7 @@ private:
         explicit ApiListHandler(Server &server);
         bool handleGet(CivetServer *, mg_connection *connection) override;
     private:
-        std::string m_cache;
+        std::string m_cache {};
         Server &m_server;
     };
     class WebSocketHandler: public CivetWebSocketHandler
@@ -132,7 +133,7 @@ private:
     static void writeAuthorizationRequired(mg_connection *connection);
     bool checkAuthorization(mg_connection *connection);
 
-    std::unique_ptr<EnhancedCivetServer> m_server {nullptr};
+    std::unique_ptr<EnhancedCivetServer> m_server {};
 
     const int m_port {0};
     const std::string m_publicFolder {};
@@ -165,11 +166,16 @@ int Server::port() const
     return m_port;
 }
 
+bool Server::isRunning() const
+{
+    return m_server != nullptr;
+}
+
 bool Server::start()
 {
     bool ok = true;
     try {
-        std::string port = std::to_string(m_port);
+        std::string port {std::to_string(m_port)};
         port.append("s");
 
         const QByteArray &certificatePath = getCertificateFilePath();
@@ -338,7 +344,7 @@ bool Server::AuthentificationHandler::handlePost(CivetServer *, mg_connection *c
 }
 
 Server::RequestHandler::RequestHandler(Server &server, const Extension &extension, Endpoint endpoint)
-    : m_server(server), m_extension(extension), m_endpoint(std::move(endpoint))
+    : m_server{server}, m_extension{extension}, m_endpoint{std::move(endpoint)}
 {
 }
 
@@ -385,7 +391,7 @@ void Server::RequestHandler::handle(mg_connection *connection, bool hasData)
         data = QJsonDocument::fromJson(QByteArray::fromStdString(postData));
     }
 
-    Reply reply = m_extension.handleRequest(m_endpoint, query, data);
+    Reply reply {m_extension.handleRequest(m_endpoint, query, data)};
     std::stringstream ss;
     ss << "HTTP/1.1 ";
     switch (reply.status()) {
@@ -441,15 +447,15 @@ bool Server::ApiListHandler::handleGet(CivetServer *, mg_connection *connection)
 
         QJsonArray list;
         for (const Extension *extension : m_server.m_extensionManager.extensions()) {
-            QJsonObject extensionObject;
+            QJsonObject extensionObject {};
             extensionObject.insert("id", QString::fromStdString(extension->id()));
             extensionObject.insert("name", extension->name());
             extensionObject.insert("description", extension->description());
-            QJsonArray endpoints;
+            QJsonArray endpoints {};
             for (const Endpoint &endpoint : extension->endpoints()) {
-                QJsonObject endpointObject;
+                QJsonObject endpointObject {};
                 endpointObject.insert("name", QString::fromStdString(endpoint.name()));
-                QString type;
+                QString type {};
                 switch (endpoint.type()) {
                 case Endpoint::Type::Get:
                     type = "get";
@@ -470,7 +476,7 @@ bool Server::ApiListHandler::handleGet(CivetServer *, mg_connection *connection)
             list.append(extensionObject);
         }
 
-        std::stringstream ss;
+        std::stringstream ss {};
         ss << "HTTP/1.1 200 OK\r\n"
            << "\r\n"
            << QJsonDocument(list).toJson(QJsonDocument::Compact).toStdString();
@@ -526,7 +532,7 @@ void Server::WebSocketHandler::handleClose(EnhancedCivetServer *server,
 }
 
 Server::WebSocketContainer::WebSocketContainer(IExtensionManager &extensionManager, Server &server)
-    : m_extensionManager(extensionManager), m_server(server)
+    : m_extensionManager{extensionManager}, m_server{server}
 {
     m_extensionManager.addCallback(*this);
 }
@@ -538,25 +544,25 @@ Server::WebSocketContainer::~WebSocketContainer()
 
 void Server::WebSocketContainer::addSocket(mg_connection *socket)
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     m_sockets.insert(socket);
 }
 
 void Server::WebSocketContainer::removeSocket(mg_connection *socket)
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     m_sockets.erase(socket);
 }
 
 void Server::WebSocketContainer::clear()
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     m_sockets.clear();
 }
 
 void Server::WebSocketContainer::operator()(const QByteArray &data) const
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
+    std::lock_guard<std::mutex> lock {m_mutex};
     for (mg_connection *socket : m_sockets) {
         m_server.m_server->wsWrite(socket, WEBSOCKET_OPCODE_TEXT, data);
     }

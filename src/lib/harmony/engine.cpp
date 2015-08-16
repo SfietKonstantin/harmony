@@ -29,34 +29,62 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
  */
 
-#ifndef ISERVER_H
-#define ISERVER_H
-
-#include <memory>
+#include "iengine.h"
+#include "iauthentificationservice.h"
+#include "iextensionmanager.h"
+#include "iserver.h"
 
 namespace harmony
 {
 
-class IAuthentificationService;
-class IExtensionManager;
-class IServer
+class Engine: public IEngine
 {
 public:
-    using Ptr = std::unique_ptr<IServer>;
-    IServer & operator=(const IServer &) = delete;
-    IServer & operator=(IServer &&) = delete;
-    virtual ~IServer() {}
-    virtual int port() const = 0;
-    virtual bool isRunning() const = 0;
-    virtual bool start() = 0;
-    virtual void stop() = 0;
-    // Do not create multiple servers, not supported by civetweb
-    static Ptr create(int port, IAuthentificationService &authentificationService,
-                      IExtensionManager &extensionManager,
-                      const std::string &publicFolder = std::string());
+    explicit Engine(const QByteArray &key, int port,
+                    IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+                    const std::string &publicFolder);
+    bool isRunning() const override;
+    bool start() override;
+    bool stop() override;
+private:
+    IAuthentificationService::Ptr m_authentificationService {};
+    IExtensionManager::Ptr m_extensionManager {};
+    IServer::Ptr m_server {};
 };
 
+Engine::Engine(const QByteArray &key, int port,
+               IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+               const std::string &publicFolder)
+    : m_authentificationService{IAuthentificationService::create(key, std::move(passwordChangedCallback))}
+    , m_extensionManager{IExtensionManager::create()}
+    , m_server{IServer::create(port, *m_authentificationService, *m_extensionManager, publicFolder)}
+{
 }
 
-#endif // ISERVER_H
+bool Engine::isRunning() const
+{
+    return m_server->isRunning();
+}
 
+bool Engine::start()
+{
+    return m_server->start();
+}
+
+bool Engine::stop()
+{
+    if (!m_server->isRunning()) {
+        return false;
+    }
+    m_server->stop();
+    return true;
+}
+
+IEngine::Ptr IEngine::create(const QByteArray &key, int port,
+                             IAuthentificationService::PasswordChangedCallback_t &&passwordChangedCallback,
+                             const std::string &publicFolder)
+{
+    return Ptr(new Engine(key, port, std::move(passwordChangedCallback), publicFolder));
+}
+
+}
